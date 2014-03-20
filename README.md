@@ -2,7 +2,7 @@
 
 [![Build Status](https://buildhive.cloudbees.com/job/cloudbees/job/jenkins-docker-registry-builder/badge/icon)](https://buildhive.cloudbees.com/job/cloudbees/job/jenkins-docker-registry-builder/)
 
-If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck!
+If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck! This is an early version - tweet @michaelneale if you have questions.
 
 Features:
    * Only a Dockerfile needed to build your project

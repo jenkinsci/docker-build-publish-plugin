@@ -13,21 +13,25 @@ Features:
    * tag the image built - use any Jenkins env. variables.
 
 
- ## Dockerfile as build config
+## Dockerfile as build config
 
- A Dockerfile is a convenient way to express build instructions.
+A Dockerfile is a convenient way to express build instructions.
 
- As the Beatles sand, all you need is Dockerfile, and love. If you have a Dockerfile in the root
- of your project, then no further configuration is needed.
+As the Beatles sand, all you need is Dockerfile, and love. If you have a Dockerfile in the root
+of your project, then no further configuration is needed.
 
- ## Usage
+## Usage
 
- Set your credentials (username, email, password) in Manage Jenkins, then in any build add a build step using docker.
- The usual docker build caching mechanism applies - and you can choose to publish, or not, the resultant image.
+Setup a build of any type - with a build step that uses Docker:
+![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
+The usual docker build caching mechanism applies - and you can choose to publish, or not, the resultant image.
 
-(insert image here - with sample tag with BUILD_NUMBER)
+Set your credentials (username, email, password) in Manage Jenkins - these are used to access docker.index.io, this includes private repositories:
 
-(insert config screen)
+![build config](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/registry-setup.png)
+
+Builds will be decorated with the repository name (and tag) of the build images:
+![build decoration](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-label.png)
 
 ### Why use a Dockerfile
 

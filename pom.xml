@@ -12,6 +12,21 @@
   <version>0.2-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
+
+  <name>Docker Build and Publish plugin</name>
+  <description>
+    This plugin builds Dockerfile based projects and publishes them to the docker registry.
+  </description>
+  <url>https://github.com/jenkinsci/docker-build-publish-plugin/blob/master/README.md</url>
+  <licenses>
+    <license>
+      <name>The MIT license</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/docker-build-publish-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/docker-build-publish-plugin.git</developerConnection>

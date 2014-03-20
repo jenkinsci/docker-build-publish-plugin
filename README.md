@@ -26,9 +26,10 @@ Setup a build of any type - with a build step that uses Docker:
 ![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
 The usual docker build caching mechanism applies - and you can choose to publish, or not, the resultant image.
 
-Set your credentials (username, email, password) in Manage Jenkins - these are used to access docker.index.io, this includes private repositories:
+Set your credentials (username, email, password) in Manage Jenkins - these are used to access index.docker.io, this includes private repositories:
 
 ![build config](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/registry-setup.png)
+Your credentials are needed if you wish to push  (to public or private repos) - or need to build based on a private repo.
 
 Builds will be decorated with the repository name (and tag) of the build images:
 ![build decoration](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-label.png)

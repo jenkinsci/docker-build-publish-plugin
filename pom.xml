@@ -6,7 +6,6 @@
     <version>1.555</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
-  <groupId>com.cloudbees</groupId>
   <artifactId>docker-build-publish</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>hpi</packaging>

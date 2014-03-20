@@ -11,6 +11,14 @@
   <version>0.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
+
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/docker-build-publish-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/docker-build-publish-plugin.git</developerConnection>
+    <url>http://github.com/jenkinsci/docker-build-publish-plugin</url>
+    <tag>HEAD</tag>
+  </scm>
+
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
     <repository>

@@ -7,7 +7,7 @@
   </parent>
 
   <groupId>com.cloudbees</groupId>
-  <artifactId>docker-publish</artifactId>
+  <artifactId>docker-build-publish</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
 

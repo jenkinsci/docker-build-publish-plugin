@@ -22,6 +22,8 @@ of your project, then no further configuration is needed.
 
 ## Usage
 
+Firstly, ensure you have docker running (if you are running with a slave, ensure the slave can run docker) - and that Jenkins can run docker commands.
+
 Setup a build of any type - with a build step that uses Docker:
 ![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
 The usual docker build caching mechanism applies - and you can choose to publish, or not, the resultant image.

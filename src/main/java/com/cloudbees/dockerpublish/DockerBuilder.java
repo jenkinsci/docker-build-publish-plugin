@@ -74,7 +74,7 @@ public class DockerBuilder extends Builder {
 
     private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
         String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
-        return "docker build -q -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " .";
+        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " .";
     }
 
     private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {

@@ -22,4 +22,11 @@
         <f:checkbox />
    </f:entry>
 
+
+  <f:entry title="Directory Dockerfile is in" field="dockerfilePath"
+    description="The project root is where the Dockerfile is looked for by default - if you need another path, enter it here">
+    <f:textbox />
+  </f:entry>
+
+
 </j:jelly>

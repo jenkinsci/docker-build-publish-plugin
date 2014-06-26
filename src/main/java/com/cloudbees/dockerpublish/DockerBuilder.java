@@ -27,6 +27,7 @@ import java.io.IOException;
 public class DockerBuilder extends Builder {
     private final String repoName;
     private final boolean noCache;
+    private final String dockerfilePath;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -36,17 +37,19 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
+        this.dockerfilePath = dockerfilePath;
     }
 
     public String getRepoName() {return repoName; }
     public String getRepoTag() {  return repoTag; }
     public boolean isSkipPush() { return skipPush;}
     public boolean isNoCache() { return noCache;}
+    public String getDockerfilePath() { return dockerfilePath; }
 
 
 
@@ -74,7 +77,11 @@ public class DockerBuilder extends Builder {
 
     private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
         String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
-        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " .";
+        String context = ".";
+        if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
+            context = getDockerfilePath();
+        }
+        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
     }
 
     private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {

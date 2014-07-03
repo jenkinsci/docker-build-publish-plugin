@@ -28,6 +28,7 @@ public class DockerBuilder extends Builder {
     private final String repoName;
     private final boolean noCache;
     private final String dockerfilePath;
+    private final boolean skipBuild;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -37,17 +38,19 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
         this.dockerfilePath = dockerfilePath;
+        this.skipBuild = skipBuild;
     }
 
     public String getRepoName() {return repoName; }
     public String getRepoTag() {  return repoTag; }
     public boolean isSkipPush() { return skipPush;}
+    public boolean isSkipBuild() { return skipBuild;}
     public boolean isNoCache() { return noCache;}
     public String getDockerfilePath() { return dockerfilePath; }
 
@@ -76,6 +79,21 @@ public class DockerBuilder extends Builder {
     }
 
     private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
+        if (isSkipBuild()) {
+            return maybeTagOnly(build, listener);
+        }
+        return buildAndTag(build, listener);
+    }
+
+    private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
+        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
+            return "echo 'Nothing to build or tag'";
+        } else {
+            return "docker tag " + getRepoName() + " " + getNameAndTag();
+        }
+    }
+
+    private String buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
         String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
         String context = ".";
         if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {

@@ -25,5 +25,14 @@
       <f:password />
     </f:entry>
 
+
+    <f:entry title="Registry server url" field="registryUrl"
+        description="Docker registry server, optional, will default to: [https://index.docker.io/v1/]">
+      <f:textbox />
+
+    </f:entry>
+
+
+
   </f:section>
 </j:jelly>

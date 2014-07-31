@@ -75,6 +75,9 @@ public class DockerBuilder extends Builder {
     private ArgumentListBuilder dockerLoginCommand() {
         ArgumentListBuilder args = new ArgumentListBuilder();
         args.add("docker").add("login").add("-u").add(getDescriptor().getUserName()).add("-e").add(getDescriptor().getEmail()).add("-p").addMasked(getDescriptor().getPassword());
+        if (getDescriptor().getRegistryUrl() != null && !getDescriptor().getRegistryUrl().trim().isEmpty()) {
+            args.add(getDescriptor().getRegistryUrl());
+        }
         return args;
     }
 
@@ -195,13 +198,17 @@ public class DockerBuilder extends Builder {
         public String getPassword() {
             return password;
         }
-        public String getEmail() {
-            return email;
-        }
+        public String getEmail() { return email; }
+        public String getRegistryUrl() { return registryUrl; }
+
 
         private String userName;
         private String password;
         private String email;
+
+
+        private String registryUrl;
+
 
         /**
          * In order to load the persisted global configuration, you have to 
@@ -245,6 +252,7 @@ public class DockerBuilder extends Builder {
             userName = formData.getString("userName");
             password = formData.getString("password");
             email = formData.getString("email");
+            registryUrl = formData.getString("registryUrl");
             save();
             return super.configure(req,formData);
         }

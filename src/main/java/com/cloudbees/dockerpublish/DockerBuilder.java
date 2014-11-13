@@ -29,6 +29,7 @@ public class DockerBuilder extends Builder {
     private final boolean noCache;
     private final String dockerfilePath;
     private final boolean skipBuild;
+    private final boolean skipDecorate;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -38,19 +39,21 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
+        this.skipDecorate = skipDecorate;
     }
 
     public String getRepoName() {return repoName; }
     public String getRepoTag() {  return repoTag; }
     public boolean isSkipPush() { return skipPush;}
     public boolean isSkipBuild() { return skipBuild;}
+    public boolean isSkipDecorate() { return skipDecorate;}
     public boolean isNoCache() { return noCache;}
     public String getDockerfilePath() { return dockerfilePath; }
 
@@ -113,7 +116,9 @@ public class DockerBuilder extends Builder {
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
         try {
-            build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, getNameAndTag()));
+            if (!isSkipDecorate()) {
+                build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, getNameAndTag()));
+            }
 
             return
                 maybeLogin(build, launcher, listener) &&

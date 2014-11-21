@@ -106,7 +106,7 @@ public class DockerBuilder extends Builder {
     }
 
     private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
-        return "docker push " + TokenMacro.expandAll(build, listener, getRepoName());
+        return "docker push " + TokenMacro.expandAll(build, listener, getNameAndTag());
     }
 
 

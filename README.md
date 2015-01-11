@@ -17,7 +17,7 @@ Features:
 
 A Dockerfile is a convenient way to express build instructions.
 
-As the Beatles sand, all you need is Dockerfile, and love. If you have a Dockerfile in the root
+As the Beatles sang, all you need is Dockerfile, and love. If you have a Dockerfile in the root
 of your project, then no further configuration is needed.
 
 ## Usage

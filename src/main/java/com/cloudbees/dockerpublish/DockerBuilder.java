@@ -87,7 +87,7 @@ public class DockerBuilder extends Builder {
         return args;
     }
 
-    private String tag(AbstractBuild build, BuildListener listener) {
+    private String tag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
         String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
         if (getRepoTag() == null || repoTag.trim().isEmpty()) {
             return "echo 'Nothing to build or tag'";

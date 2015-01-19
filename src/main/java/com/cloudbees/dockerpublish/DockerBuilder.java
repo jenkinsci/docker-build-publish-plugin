@@ -30,6 +30,7 @@ public class DockerBuilder extends Builder {
     private final String dockerfilePath;
     private final boolean skipBuild;
     private final boolean skipDecorate;
+    private final boolean tagLatest;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -39,7 +40,7 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean tagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
@@ -47,6 +48,7 @@ public class DockerBuilder extends Builder {
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
+        this.tagLatest = tagLatest;
     }
 
     public String getRepoName() {return repoName; }
@@ -55,6 +57,7 @@ public class DockerBuilder extends Builder {
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
     public boolean isNoCache() { return noCache;}
+    public boolean tagLatest() { return tagLatest;}
     public String getDockerfilePath() { return dockerfilePath; }
 
 
@@ -94,8 +97,10 @@ public class DockerBuilder extends Builder {
     private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
         if (getRepoTag() == null || repoTag.trim().isEmpty()) {
             return "echo 'Nothing to build or tag'";
+        } else if (tagLatest) {
+            return "docker tag -f " + getRepoName() + " " + getNameAndTag() + repoName + ":latest";
         } else {
-            return "docker tag " + getRepoName() + " " + getNameAndTag();
+            return "docker tag -f " + getRepoName() + " " + getNameAndTag();
         }
     }
 

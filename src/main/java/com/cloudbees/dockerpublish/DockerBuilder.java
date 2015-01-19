@@ -87,20 +87,14 @@ public class DockerBuilder extends Builder {
         return args;
     }
 
-    private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
-        if (isSkipBuild()) {
-            return maybeTagOnly(build, listener);
-        }
-        return buildAndTag(build, listener);
-    }
-
-    private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
+    private String tag(AbstractBuild build, BuildListener listener) {
+        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
         if (getRepoTag() == null || repoTag.trim().isEmpty()) {
             return "echo 'Nothing to build or tag'";
-        } else if (tagLatest) {
-            return "docker tag -f " + getRepoName() + " " + getNameAndTag() + " " + repoName + ":latest";
+        } else if (tagLatest()) {
+            return "docker tag -f " + getRepoName() + " " + buildTag + " " + repoName + ":latest";
         } else {
-            return "docker tag -f " + getRepoName() + " " + getNameAndTag();
+            return "docker tag -f " + getRepoName() + " " + buildTag;
         }
     }
 
@@ -125,10 +119,19 @@ public class DockerBuilder extends Builder {
                 build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, getNameAndTag()));
             }
 
-            return
-                maybeLogin(build, launcher, listener) &&
-                executeCmd(build, launcher, listener, dockerBuildCommand(build, listener)) &&
-                maybePush(build, launcher, listener);
+            if (!isSkipBuild()) {
+                return
+                    maybeLogin(build, launcher, listener) &&
+                    executeCmd(build, launcher, listener, buildAndTag(build, listener)) &&
+                    executeCmd(build, launcher, listener, tag(build, listener)) &&
+                    maybePush(build, launcher, listener);
+            } else {
+                return
+                    maybeLogin(build, launcher, listener) &&
+                    executeCmd(build, launcher, listener, tag(build, listener)) &&
+                    maybePush(build, launcher, listener);
+            }
+
 
         } catch (IOException e) {
             return recordException(listener, e);

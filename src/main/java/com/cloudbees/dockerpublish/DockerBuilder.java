@@ -98,7 +98,7 @@ public class DockerBuilder extends Builder {
         if (getRepoTag() == null || repoTag.trim().isEmpty()) {
             return "echo 'Nothing to build or tag'";
         } else if (tagLatest) {
-            return "docker tag -f " + getRepoName() + " " + getNameAndTag() + repoName + ":latest";
+            return "docker tag -f " + getRepoName() + " " + getNameAndTag() + " " + repoName + ":latest";
         } else {
             return "docker tag -f " + getRepoName() + " " + getNameAndTag();
         }

@@ -91,7 +91,8 @@ public class DockerBuilder extends Builder {
         if (isSkipBuild()) {
             return maybeTagOnly(build, listener);
         }
-        return buildAndTag(build, listener);
+        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+        return buildAndTag(build, listener, buildTag);
     }
 
     private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
@@ -102,13 +103,12 @@ public class DockerBuilder extends Builder {
         }
     }
 
-    private String buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
-        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+    private String buildAndTag(AbstractBuild build, BuildListener listener, String tag) throws MacroEvaluationException, IOException, InterruptedException {
         String context = ".";
         if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
             context = getDockerfilePath();
         }
-        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
+        return "docker build -t " + tag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
     }
 
     private String dockerPushCommand(AbstractBuild build, BuildListener listener, String tag) throws InterruptedException, MacroEvaluationException, IOException {
@@ -152,8 +152,12 @@ public class DockerBuilder extends Builder {
             String nameAndTag = TokenMacro.expandAll(build, listener, getNameAndTag());
             boolean result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, nameAndTag));
             if (result && isTagLatest()) {
+                // rebuild the image with the latest tag
                 String latest = getRepoName() + ":latest";
-                result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, latest));
+                result = executeCmd(build, launcher, listener, buildAndTag(build, listener, latest));
+                if (result) {
+                  result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, latest));
+                }
             }
             return result;
         } else {

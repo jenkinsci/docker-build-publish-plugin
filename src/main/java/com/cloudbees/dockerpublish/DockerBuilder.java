@@ -30,7 +30,7 @@ public class DockerBuilder extends Builder {
     private final String dockerfilePath;
     private final boolean skipBuild;
     private final boolean skipDecorate;
-    private final boolean tagLatest;
+    private final boolean skipTagLatest;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -40,7 +40,7 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean tagLatest, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
@@ -48,7 +48,7 @@ public class DockerBuilder extends Builder {
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
-        this.tagLatest = tagLatest;
+        this.skipTagLatest = skipTagLatest;
     }
 
     public String getRepoName() {return repoName; }
@@ -57,7 +57,7 @@ public class DockerBuilder extends Builder {
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
     public boolean isNoCache() { return noCache;}
-    public boolean isTagLatest() { return tagLatest;}
+    public boolean isSkipTagLatest() { return skipTagLatest;}
     public String getDockerfilePath() { return dockerfilePath; }
 
 
@@ -151,7 +151,7 @@ public class DockerBuilder extends Builder {
         if (!isSkipPush()) {
             String nameAndTag = TokenMacro.expandAll(build, listener, getNameAndTag());
             boolean result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, nameAndTag));
-            if (result && isTagLatest()) {
+            if (result && isSkipTagLatest()) {
                 // rebuild the image with the latest tag
                 String latest = getRepoName() + ":latest";
                 result = executeCmd(build, launcher, listener, buildAndTag(build, listener, latest));

@@ -32,8 +32,8 @@
         <f:checkbox />
    </f:entry>
 
-   <f:entry title="Tag as latest" field="tagLatest"
-        description="Tag this build as the latest">
+   <f:entry title="Skip tag as latest" field="skipTagLatest"
+        description="Do not tag this build as the latest">
         <f:checkbox />
    </f:entry>
 

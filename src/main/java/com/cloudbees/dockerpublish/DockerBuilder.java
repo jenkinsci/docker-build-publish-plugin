@@ -30,6 +30,7 @@ public class DockerBuilder extends Builder {
     private final String dockerfilePath;
     private final boolean skipBuild;
     private final boolean skipDecorate;
+    private final boolean skipTagLatest;
     private String repoTag;
     private boolean skipPush = true;
 
@@ -39,7 +40,7 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
@@ -47,6 +48,7 @@ public class DockerBuilder extends Builder {
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
+        this.skipTagLatest = skipTagLatest;
     }
 
     public String getRepoName() {return repoName; }
@@ -55,6 +57,7 @@ public class DockerBuilder extends Builder {
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
     public boolean isNoCache() { return noCache;}
+    public boolean isSkipTagLatest() { return skipTagLatest;}
     public String getDockerfilePath() { return dockerfilePath; }
 
 
@@ -66,7 +69,7 @@ public class DockerBuilder extends Builder {
      * In docker - you push the whole repo to trigger the sync.
      */
     private String getNameAndTag() {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
+        if (getRepoTag() == null || getRepoTag().trim().isEmpty()) {
             return repoName;
         } else {
             return repoName + ":" + repoTag;
@@ -88,28 +91,28 @@ public class DockerBuilder extends Builder {
         if (isSkipBuild()) {
             return maybeTagOnly(build, listener);
         }
-        return buildAndTag(build, listener);
+        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+        return buildAndTag(build, listener, buildTag);
     }
 
     private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
+        if (getRepoTag() == null || getRepoTag().trim().isEmpty()) {
             return "echo 'Nothing to build or tag'";
         } else {
             return "docker tag " + getRepoName() + " " + getNameAndTag();
         }
     }
 
-    private String buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
-        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+    private String buildAndTag(AbstractBuild build, BuildListener listener, String tag) throws MacroEvaluationException, IOException, InterruptedException {
         String context = ".";
         if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
             context = getDockerfilePath();
         }
-        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
+        return "docker build -t " + tag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
     }
 
-    private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
-        return "docker push " + TokenMacro.expandAll(build, listener, getNameAndTag());
+    private String dockerPushCommand(AbstractBuild build, BuildListener listener, String tag) throws InterruptedException, MacroEvaluationException, IOException {
+        return "docker push " + tag;
     }
 
 
@@ -146,7 +149,17 @@ public class DockerBuilder extends Builder {
 
     private boolean maybePush(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
         if (!isSkipPush()) {
-            return executeCmd(build, launcher, listener, dockerPushCommand(build, listener));
+            String nameAndTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+            boolean result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, nameAndTag));
+            if (result && isSkipTagLatest()) {
+                // rebuild the image with the latest tag
+                String latest = getRepoName() + ":latest";
+                result = executeCmd(build, launcher, listener, buildAndTag(build, listener, latest));
+                if (result) {
+                  result = executeCmd(build, launcher, listener, dockerPushCommand(build, listener, latest));
+                }
+            }
+            return result;
         } else {
             return true;
         }

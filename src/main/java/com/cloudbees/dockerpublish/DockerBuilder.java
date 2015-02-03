@@ -9,6 +9,7 @@ import hudson.model.AbstractProject;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
 import net.sf.json.JSONObject;
+
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -16,7 +17,11 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
+
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Plugin to build and publish docker projects to the docker registry/index.
@@ -32,6 +37,7 @@ public class DockerBuilder extends Builder {
     private final boolean skipDecorate;
     private String repoTag;
     private boolean skipPush = true;
+    private final boolean skipTagLatest;
 
     /**
     *
@@ -39,7 +45,7 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
@@ -47,13 +53,16 @@ public class DockerBuilder extends Builder {
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
+        this.skipTagLatest = skipTagLatest;
     }
 
     public String getRepoName() {return repoName; }
-    public String getRepoTag() {  return repoTag; }
+    public String[] getRepoTag() {  return repoTag.trim().split(","); }
+    public boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().length == 0) ; }
     public boolean isSkipPush() { return skipPush;}
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
+    public boolean isSkipTagLatest() { return skipTagLatest;}
     public boolean isNoCache() { return noCache;}
     public String getDockerfilePath() { return dockerfilePath; }
 
@@ -65,12 +74,19 @@ public class DockerBuilder extends Builder {
      *   but not to push to the registry.
      * In docker - you push the whole repo to trigger the sync.
      */
-    private String getNameAndTag() {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
-            return repoName;
+    private List<String> getNameAndTag() {
+    	List<String> result = new ArrayList<String>();
+        if (!hasRepoTag()) {
+        	result.add(repoName);
         } else {
-            return repoName + ":" + repoTag;
+        	for (String rt: getRepoTag()) {
+        		result.add(repoName + ":" + rt);
+        	}
+        	if (!isSkipTagLatest()) {
+        		result.add(repoName + ":latest");
+        	}
         }
+        return result;
     }
 
 
@@ -84,32 +100,47 @@ public class DockerBuilder extends Builder {
         return args;
     }
 
-    private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
+    private List<String> dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
         if (isSkipBuild()) {
             return maybeTagOnly(build, listener);
         }
         return buildAndTag(build, listener);
     }
 
-    private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
-            return "echo 'Nothing to build or tag'";
+    private List<String> maybeTagOnly(AbstractBuild build, BuildListener listener) {
+    	List<String> result = new ArrayList<String>();
+        if (!hasRepoTag()) {
+            result.add("echo 'Nothing to build or tag'");
         } else {
-            return "docker tag " + getRepoName() + " " + getNameAndTag();
+        	for (String rt: getRepoTag()) {
+        		result.add("docker tag " + getRepoName() + " " + repoName + ":" + rt);
+        	}
         }
+        return result;
     }
 
-    private String buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
-        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
+    private List<String> buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
+    	List<String> buildTag = new ArrayList<String>();
+    	for (String rt: getNameAndTag()) {
+    		buildTag.add(TokenMacro.expandAll(build, listener, rt));
+    	}
         String context = ".";
         if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
             context = getDockerfilePath();
         }
-        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
+        List<String> result = new ArrayList<String>();
+        for (String tag: buildTag) {        	
+        	result.add("docker build -t " + tag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context);
+        }
+        return result;
     }
 
-    private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
-        return "docker push " + TokenMacro.expandAll(build, listener, getNameAndTag());
+    private List<String> dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
+    	List<String> result = new ArrayList<String>();
+    	for (String tag: getNameAndTag()) {
+    		result.add("docker push " + TokenMacro.expandAll(build, listener, tag));
+    	}
+    	return result;
     }
 
 
@@ -117,7 +148,9 @@ public class DockerBuilder extends Builder {
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
         try {
             if (!isSkipDecorate()) {
-                build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, getNameAndTag()));
+            	for (String tag: getNameAndTag()) {
+            		build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, tag));
+            	}
             }
 
             return
@@ -162,6 +195,15 @@ public class DockerBuilder extends Builder {
             .start().join() == 0;
     }
 
+    private boolean executeCmd(AbstractBuild build, Launcher launcher, BuildListener listener, List<String> cmds) throws IOException, InterruptedException {
+    	Iterator<String> i = cmds.iterator();
+    	boolean lastResultSuccessful = true;
+    	while (lastResultSuccessful && i.hasNext()) {
+    		lastResultSuccessful = executeCmd(build, launcher, listener, i.next());
+    	}
+    	return lastResultSuccessful;
+    	
+    }
 
     private boolean executeCmd(AbstractBuild build, Launcher launcher, BuildListener listener, String cmd) throws IOException, InterruptedException {
         return launcher.launch()

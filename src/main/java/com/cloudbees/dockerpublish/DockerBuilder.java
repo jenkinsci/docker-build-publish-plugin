@@ -57,8 +57,8 @@ public class DockerBuilder extends Builder {
     }
 
     public String getRepoName() {return repoName; }
-    public String[] getRepoTag() {  return repoTag.trim().split(","); }
-    public boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().length == 0) ; }
+    public String getRepoTag() {  return repoTag; }
+    public boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().trim().length() == 0) ; }
     public boolean isSkipPush() { return skipPush;}
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
@@ -79,7 +79,7 @@ public class DockerBuilder extends Builder {
         if (!hasRepoTag()) {
         	result.add(repoName);
         } else {
-        	for (String rt: getRepoTag()) {
+        	for (String rt: getRepoTag().trim().split(",")) {
         		result.add(repoName + ":" + rt);
         	}
         	if (!isSkipTagLatest()) {
@@ -112,7 +112,7 @@ public class DockerBuilder extends Builder {
         if (!hasRepoTag()) {
             result.add("echo 'Nothing to build or tag'");
         } else {
-        	for (String rt: getRepoTag()) {
+        	for (String rt: getRepoTag().trim().split(",")) {
         		result.add("docker tag " + getRepoName() + " " + repoName + ":" + rt);
         	}
         }

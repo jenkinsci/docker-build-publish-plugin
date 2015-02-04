@@ -9,6 +9,7 @@ import hudson.model.AbstractProject;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
 import net.sf.json.JSONObject;
+
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -16,11 +17,14 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -67,7 +71,9 @@ public class DockerBuilder extends Builder {
 
 
 
-    private boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().trim().length() == 0) ; }
+    private boolean defined(String s) {
+    	return s != null && !s.trim().isEmpty();
+    }
     
     /** Mask the password. Future: use oauth token instead with Oauth sign in */
     private ArgumentListBuilder dockerLoginCommand() {
@@ -87,16 +93,14 @@ public class DockerBuilder extends Builder {
     private static class Result {
     	final boolean result;
     	final String stdout;
-    	final String stderr;
     	
     	private Result() {
-    		this(true, "", "");
+    		this(true, "");
     	}
     	
-    	private Result(boolean result, String stdout, String stderr) {
+    	private Result(boolean result, String stdout) {
     		this.result = result;
     		this.stdout = stdout;
-    		this.stderr = stderr;
     	}
     }
     
@@ -122,7 +126,7 @@ public class DockerBuilder extends Builder {
                 return
                     maybeLogin() &&
                     isSkipBuild() ? maybeTagOnly() : buildAndTag() &&
-                    maybePush();
+                    isSkipPush() ? true : dockerPushCommand();
 
             } catch (IOException e) {
                 return recordException(e);
@@ -142,7 +146,7 @@ public class DockerBuilder extends Builder {
          */
         private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
         	List<String> tags = new ArrayList<String>();
-            if (!hasRepoTag()) {
+            if (!defined(getRepoTag())) {
             	tags.add(expandAll(repoName));
             } else {
             	for (String rt: getRepoTag().trim().split(",")) {
@@ -157,7 +161,7 @@ public class DockerBuilder extends Builder {
         
         private boolean maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
         	List<String> result = new ArrayList<String>();
-            if (!hasRepoTag()) {
+            if (!defined(getRepoTag())) {
                 result.add("echo 'Nothing to build or tag'");
             } else {
             	for (String tag : getNameAndTag()) {
@@ -166,41 +170,51 @@ public class DockerBuilder extends Builder {
             }
             return executeCmd(result);
         }
+        
+		private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
+			String context = defined(getDockerfilePath()) ?
+					getDockerfilePath() : ".";
+			Iterator<String> i = getNameAndTag().iterator();
+			Result lastResult = new Result();
+			if (i.hasNext()) {
+				lastResult = executeCmd("docker build -t " + i.next()
+						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+						+ context);
+			}
+			// get the image to save rebuilding it to apply the other tags
+			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]).*?");
+			Matcher m = p.matcher(lastResult.stdout);
+			String image = m.find() ? m.group(1) : null;
+			if (image != null) {
+				// we know the image name so apply the tags directly
+				while (lastResult.result && i.hasNext()) {
+					lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
+				}
+			} else {
+				// we don't know the image name so rebuild the image for each tag
+				while (lastResult.result && i.hasNext()) {
+					lastResult = executeCmd("docker build -t " + i.next()
+							+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+							+ context);
+				}
+			}
+			return lastResult.result;
+		}
 
-        private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            String context = getDockerfilePath() != null && !getDockerfilePath().trim().equals("") ? getDockerfilePath() :  ".";
-        	Iterator<String> i = getNameAndTag().iterator();
-        	Result lastResultSuccessful = new Result(true, "", "");
-        	// if a command fails, do not continue
-        	while (lastResultSuccessful.result && i.hasNext()) {
-        		lastResultSuccessful = 
-        				executeCmd("docker build -t " + i.next() + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context);
-            }
-        	return lastResultSuccessful.result;
-        }
-
-        private List<String> dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
+        private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
         	List<String> result = new ArrayList<String>();
         	for (String tag: getNameAndTag()) {
         		result.add("docker push " + tag);
         	}
-        	return result;
+        	return executeCmd(result);
         }
     	
         private boolean maybeLogin() throws IOException, InterruptedException {
-            if (getDescriptor().getPassword() == null || getDescriptor().getPassword().isEmpty()) {
+            if (defined(getDescriptor().getPassword())) {
                 listener.getLogger().println("No credentials provided, so not logging in to the registry.");
                 return true;
             } else {
                 return executeCmd(dockerLoginCommand());
-            }
-        }
-
-        private boolean maybePush() throws IOException, InterruptedException, MacroEvaluationException {
-            if (!isSkipPush()) {
-                return executeCmd(dockerPushCommand());
-            } else {
-                return true;
             }
         }
 
@@ -216,12 +230,12 @@ public class DockerBuilder extends Builder {
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
         	Iterator<String> i = cmds.iterator();
-        	Result lastResultSuccessful = new Result(true, "", "");
+        	Result lastResult = new Result();
         	// if a command fails, do not continue
-        	while (lastResultSuccessful.result && i.hasNext()) {
-        		lastResultSuccessful = executeCmd(i.next());
+        	while (lastResult.result && i.hasNext()) {
+        		lastResult = executeCmd(i.next());
         	}
-        	return lastResultSuccessful.result;
+        	return lastResult.result;
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
@@ -230,15 +244,14 @@ public class DockerBuilder extends Builder {
             boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))
                     .pwd(build.getWorkspace())
-                    .stdout(listener.getLogger())
-                    .stderr(listener.getLogger())
+                    .stdout(stdout)
+                    .stderr(stderr)
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
             String stdoutStr = stdout.toString();
-            String stderrStr = stderr.toString();
-            listener.getLogger().print(stdoutStr);
-            listener.getLogger().print(stderrStr);
-            return new Result(result, stdoutStr, stderrStr);
+            listener.getLogger().println(stdoutStr);
+            listener.getLogger().println(stderr.toString());
+            return new Result(result, stdoutStr);
         }
 
         private boolean recordException(Exception e) {

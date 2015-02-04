@@ -1,26 +1,29 @@
 package com.cloudbees.dockerpublish;
-import hudson.Launcher;
 import hudson.Extension;
+import hudson.Launcher;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.AbstractProject;
-import hudson.tasks.Builder;
-import hudson.tasks.BuildStepDescriptor;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.ServletException;
+
 import net.sf.json.JSONObject;
 
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
-
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ArrayList;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Plugin to build and publish docker projects to the docker registry/index.
@@ -81,6 +84,17 @@ public class DockerBuilder extends Builder {
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
     	return new Perform(build, launcher, listener).exec();
+    }
+    
+    private static class Result {
+    	final boolean result;
+    	final String stdout;
+    	final String stderr;
+    	private Result(boolean result, String stdout, String stderr) {
+    		this.result = result;
+    		this.stdout = stdout;
+    		this.stderr = stderr;
+    	}
     }
     
     private class Perform {
@@ -203,23 +217,30 @@ public class DockerBuilder extends Builder {
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
         	Iterator<String> i = cmds.iterator();
-        	boolean lastResultSuccessful = true;
+        	Result lastResultSuccessful = new Result(true, "", "");
         	// if a command fails, do not continue
-        	while (lastResultSuccessful && i.hasNext()) {
+        	while (lastResultSuccessful.result && i.hasNext()) {
         		lastResultSuccessful = executeCmd(i.next());
         	}
-        	return lastResultSuccessful;
+        	return lastResultSuccessful.result;
         	
         }
 
-        private boolean executeCmd(String cmd) throws IOException, InterruptedException {
-            return launcher.launch()
+        private Result executeCmd(String cmd) throws IOException, InterruptedException {
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+            boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))
                     .pwd(build.getWorkspace())
                     .stdout(listener.getLogger())
                     .stderr(listener.getLogger())
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
+            String stdoutStr = stdout.toString();
+            String stderrStr = stderr.toString();
+            listener.getLogger().print(stdoutStr);
+            listener.getLogger().print(stderrStr);
+            return new Result(result, stdoutStr, stderrStr);
         }
 
         private boolean recordException(Exception e) {

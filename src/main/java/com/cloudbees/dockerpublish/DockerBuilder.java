@@ -1,29 +1,27 @@
 package com.cloudbees.dockerpublish;
-import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
+import hudson.Extension;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.AbstractProject;
+import hudson.tasks.Builder;
+import hudson.tasks.BuildStepDescriptor;
+import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
+import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.QueryParameter;
 
+import javax.servlet.ServletException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.servlet.ServletException;
-
-import net.sf.json.JSONObject;
-
-import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
-import org.jenkinsci.plugins.tokenmacro.TokenMacro;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Plugin to build and publish docker projects to the docker registry/index.

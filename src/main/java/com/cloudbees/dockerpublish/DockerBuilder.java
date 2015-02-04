@@ -112,8 +112,9 @@ public class DockerBuilder extends Builder {
         if (!hasRepoTag()) {
             result.add("echo 'Nothing to build or tag'");
         } else {
-        	for (String rt: getRepoTag().trim().split(",")) {
-        		result.add("docker tag " + getRepoName() + " " + repoName + ":" + rt);
+        	List<String> tags = getNameAndTag();
+        	for (String tag : tags) {
+        		result.add("docker tag " + tag);
         	}
         }
         return result;
@@ -198,6 +199,7 @@ public class DockerBuilder extends Builder {
     private boolean executeCmd(AbstractBuild build, Launcher launcher, BuildListener listener, List<String> cmds) throws IOException, InterruptedException {
     	Iterator<String> i = cmds.iterator();
     	boolean lastResultSuccessful = true;
+    	// if a command fails, do not continue
     	while (lastResultSuccessful && i.hasNext()) {
     		lastResultSuccessful = executeCmd(build, launcher, listener, i.next());
     	}

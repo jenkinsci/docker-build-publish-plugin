@@ -118,7 +118,7 @@ public class DockerBuilder extends Builder {
 
                 return
                     maybeLogin() &&
-                    executeCmd(dockerBuildCommand()) &&
+                    isSkipBuild() ? maybeTagOnly() : buildAndTag() &&
                     maybePush();
 
             } catch (IOException e) {
@@ -130,45 +130,41 @@ public class DockerBuilder extends Builder {
             }
     	}
     	
+    	private String expandAll(String s) throws MacroEvaluationException, IOException, InterruptedException {
+    		return TokenMacro.expandAll(build, listener, s);
+    	}
+    	
         /**
          * This tag is what is used to build, tag and push the registry.
          */
         private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-        	List<String> buildTags = new ArrayList<String>();
+        	List<String> tags = new ArrayList<String>();
             if (!hasRepoTag()) {
-            	buildTags.add(TokenMacro.expandAll(build, listener, repoName));
+            	tags.add(expandAll(repoName));
             } else {
             	for (String rt: getRepoTag().trim().split(",")) {
-            		buildTags.add(TokenMacro.expandAll(build, listener, repoName + ":" + rt));
+            		tags.add(expandAll(repoName + ":" + rt));
             	}
             	if (!isSkipTagLatest()) {
-            		buildTags.add(TokenMacro.expandAll(build, listener, repoName + ":latest"));
+            		tags.add(expandAll(repoName + ":latest"));
             	}
             }
-        	return buildTags;
+        	return tags;
         }
         
-        private List<String> dockerBuildCommand() throws IOException, InterruptedException, MacroEvaluationException {
-            if (isSkipBuild()) {
-                return maybeTagOnly();
-            }
-            return buildAndTag();
-        }
-
-        private List<String> maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
+        private boolean maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
         	List<String> result = new ArrayList<String>();
             if (!hasRepoTag()) {
                 result.add("echo 'Nothing to build or tag'");
             } else {
-            	List<String> tags = getNameAndTag();
-            	for (String tag : tags) {
+            	for (String tag : getNameAndTag()) {
             		result.add("docker tag " + getRepoName() + " " + tag);
             	}
             }
-            return result;
+            return executeCmd(result);
         }
 
-        private List<String> buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
+        private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
             String context = ".";
             if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
                 context = getDockerfilePath();
@@ -177,7 +173,7 @@ public class DockerBuilder extends Builder {
             for (String tag: getNameAndTag()) {        	
             	result.add("docker build -t " + tag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context);
             }
-            return result;
+            return executeCmd(result);
         }
 
         private List<String> dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {

@@ -17,7 +17,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +57,6 @@ public class DockerBuilder extends Builder {
 
     public String getRepoName() {return repoName; }
     public String getRepoTag() {  return repoTag; }
-    public boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().trim().length() == 0) ; }
     public boolean isSkipPush() { return skipPush;}
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
@@ -68,28 +66,26 @@ public class DockerBuilder extends Builder {
 
 
 
+    private boolean hasRepoTag() {  return !(getRepoTag() == null || getRepoTag().trim().length() == 0) ; }
 
     /**
-     * This tag is what is used to build (and tag into the local clone of the repo)
-     *   but not to push to the registry.
-     * In docker - you push the whole repo to trigger the sync.
+     * This tag is what is used to build, tag and push the registry.
      */
-    private List<String> getNameAndTag() {
-    	List<String> result = new ArrayList<String>();
+    private List<String> getNameAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
+    	List<String> buildTags = new ArrayList<String>();
         if (!hasRepoTag()) {
-        	result.add(repoName);
+        	buildTags.add(TokenMacro.expandAll(build, listener, repoName));
         } else {
         	for (String rt: getRepoTag().trim().split(",")) {
-        		result.add(repoName + ":" + rt);
+        		buildTags.add(TokenMacro.expandAll(build, listener, repoName + ":" + rt));
         	}
         	if (!isSkipTagLatest()) {
-        		result.add(repoName + ":latest");
+        		buildTags.add(TokenMacro.expandAll(build, listener, repoName + ":latest"));
         	}
         }
-        return result;
+    	return buildTags;
     }
-
-
+    
     /** Mask the password. Future: use oauth token instead with Oauth sign in */
     private ArgumentListBuilder dockerLoginCommand() {
         ArgumentListBuilder args = new ArgumentListBuilder();
@@ -107,12 +103,12 @@ public class DockerBuilder extends Builder {
         return buildAndTag(build, listener);
     }
 
-    private List<String> maybeTagOnly(AbstractBuild build, BuildListener listener) {
+    private List<String> maybeTagOnly(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
     	List<String> result = new ArrayList<String>();
         if (!hasRepoTag()) {
             result.add("echo 'Nothing to build or tag'");
         } else {
-        	List<String> tags = getNameAndTag();
+        	List<String> tags = getNameAndTag(build, listener);
         	for (String tag : tags) {
         		result.add("docker tag " + tag);
         	}
@@ -121,10 +117,7 @@ public class DockerBuilder extends Builder {
     }
 
     private List<String> buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
-    	List<String> buildTag = new ArrayList<String>();
-    	for (String rt: getNameAndTag()) {
-    		buildTag.add(TokenMacro.expandAll(build, listener, rt));
-    	}
+    	List<String> buildTag = getNameAndTag(build, listener);
         String context = ".";
         if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
             context = getDockerfilePath();
@@ -138,8 +131,8 @@ public class DockerBuilder extends Builder {
 
     private List<String> dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
     	List<String> result = new ArrayList<String>();
-    	for (String tag: getNameAndTag()) {
-    		result.add("docker push " + TokenMacro.expandAll(build, listener, tag));
+    	for (String tag: getNameAndTag(build, listener)) {
+    		result.add("docker push " + tag);
     	}
     	return result;
     }
@@ -149,8 +142,8 @@ public class DockerBuilder extends Builder {
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
         try {
             if (!isSkipDecorate()) {
-            	for (String tag: getNameAndTag()) {
-            		build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, tag));
+            	for (String tag: getNameAndTag(build, listener)) {
+            		build.setDisplayName(build.getDisplayName() + " " + tag);
             	}
             }
 

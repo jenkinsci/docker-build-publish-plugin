@@ -110,7 +110,7 @@ public class DockerBuilder extends Builder {
         } else {
         	List<String> tags = getNameAndTag(build, listener);
         	for (String tag : tags) {
-        		result.add("docker tag " + tag);
+        		result.add("docker tag " + getRepoName() + " " + tag);
         	}
         }
         return result;

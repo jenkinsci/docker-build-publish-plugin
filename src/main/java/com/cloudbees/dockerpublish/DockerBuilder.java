@@ -88,6 +88,11 @@ public class DockerBuilder extends Builder {
     	final boolean result;
     	final String stdout;
     	final String stderr;
+    	
+    	private Result() {
+    		this(true, "", "");
+    	}
+    	
     	private Result(boolean result, String stdout, String stderr) {
     		this.result = result;
     		this.stdout = stdout;
@@ -163,15 +168,15 @@ public class DockerBuilder extends Builder {
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            String context = ".";
-            if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
-                context = getDockerfilePath();
+            String context = getDockerfilePath() != null && !getDockerfilePath().trim().equals("") ? getDockerfilePath() :  ".";
+        	Iterator<String> i = getNameAndTag().iterator();
+        	Result lastResultSuccessful = new Result(true, "", "");
+        	// if a command fails, do not continue
+        	while (lastResultSuccessful.result && i.hasNext()) {
+        		lastResultSuccessful = 
+        				executeCmd("docker build -t " + i.next() + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context);
             }
-            List<String> result = new ArrayList<String>();
-            for (String tag: getNameAndTag()) {        	
-            	result.add("docker build -t " + tag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context);
-            }
-            return executeCmd(result);
+        	return lastResultSuccessful.result;
         }
 
         private List<String> dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
@@ -217,7 +222,6 @@ public class DockerBuilder extends Builder {
         		lastResultSuccessful = executeCmd(i.next());
         	}
         	return lastResultSuccessful.result;
-        	
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {

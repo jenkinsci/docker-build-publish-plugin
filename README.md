@@ -36,6 +36,8 @@ Your credentials are needed if you wish to push  (to public or private repos) - 
 Builds will be decorated with the repository name (and tag) of the build images:
 ![build decoration](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-label.png)
 
+You can supply multiple tags for an image separated by commas. The latest tag is automatically applied to image - if you do not want this check the `Do not tag this build as latest` checkbox. 
+
 ### Why use a Dockerfile
 
 Defining your build as a Dockerfile means that it will run in a consistent linux environment, no matter where the build is run.

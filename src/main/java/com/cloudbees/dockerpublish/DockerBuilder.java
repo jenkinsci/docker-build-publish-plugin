@@ -9,6 +9,7 @@ import hudson.model.AbstractProject;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
 import net.sf.json.JSONObject;
+
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -16,7 +17,15 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 /**
  * Plugin to build and publish docker projects to the docker registry/index.
@@ -32,6 +41,7 @@ public class DockerBuilder extends Builder {
     private final boolean skipDecorate;
     private String repoTag;
     private boolean skipPush = true;
+    private final boolean skipTagLatest;
 
     /**
     *
@@ -39,7 +49,7 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
@@ -47,6 +57,7 @@ public class DockerBuilder extends Builder {
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
+        this.skipTagLatest = skipTagLatest;
     }
 
     public String getRepoName() {return repoName; }
@@ -54,26 +65,16 @@ public class DockerBuilder extends Builder {
     public boolean isSkipPush() { return skipPush;}
     public boolean isSkipBuild() { return skipBuild;}
     public boolean isSkipDecorate() { return skipDecorate;}
+    public boolean isSkipTagLatest() { return skipTagLatest;}
     public boolean isNoCache() { return noCache;}
     public String getDockerfilePath() { return dockerfilePath; }
 
 
 
-
-    /**
-     * This tag is what is used to build (and tag into the local clone of the repo)
-     *   but not to push to the registry.
-     * In docker - you push the whole repo to trigger the sync.
-     */
-    private String getNameAndTag() {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
-            return repoName;
-        } else {
-            return repoName + ":" + repoTag;
-        }
+    private boolean defined(String s) {
+    	return s != null && !s.trim().isEmpty();
     }
-
-
+    
     /** Mask the password. Future: use oauth token instead with Oauth sign in */
     private ArgumentListBuilder dockerLoginCommand() {
         ArgumentListBuilder args = new ArgumentListBuilder();
@@ -84,102 +85,182 @@ public class DockerBuilder extends Builder {
         return args;
     }
 
-    private String dockerBuildCommand(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
-        if (isSkipBuild()) {
-            return maybeTagOnly(build, listener);
-        }
-        return buildAndTag(build, listener);
-    }
-
-    private String maybeTagOnly(AbstractBuild build, BuildListener listener) {
-        if (getRepoTag() == null || repoTag.trim().isEmpty()) {
-            return "echo 'Nothing to build or tag'";
-        } else {
-            return "docker tag " + getRepoName() + " " + getNameAndTag();
-        }
-    }
-
-    private String buildAndTag(AbstractBuild build, BuildListener listener) throws MacroEvaluationException, IOException, InterruptedException {
-        String buildTag = TokenMacro.expandAll(build, listener, getNameAndTag());
-        String context = ".";
-        if (getDockerfilePath() != null && !getDockerfilePath().trim().equals("")) {
-            context = getDockerfilePath();
-        }
-        return "docker build -t " + buildTag + ((isNoCache()) ? " --no-cache=true " : "")  + " " + context;
-    }
-
-    private String dockerPushCommand(AbstractBuild build, BuildListener listener) throws InterruptedException, MacroEvaluationException, IOException {
-        return "docker push " + TokenMacro.expandAll(build, listener, getNameAndTag());
-    }
-
-
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
-        try {
-            if (!isSkipDecorate()) {
-                build.setDisplayName(build.getDisplayName() + " " + TokenMacro.expandAll(build, listener, getNameAndTag()));
+    	return new Perform(build, launcher, listener).exec();
+    }
+    
+    private static class Result {
+    	final boolean result;
+    	final String stdout;
+    	
+    	private Result() {
+    		this(true, "");
+    	}
+    	
+    	private Result(boolean result, String stdout) {
+    		this.result = result;
+    		this.stdout = stdout;
+    	}
+    }
+    
+    private class Perform {
+    	private final AbstractBuild build;
+    	private final Launcher launcher;
+    	private final BuildListener listener;
+    	
+    	private Perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    		this.build = build;
+    		this.launcher = launcher;
+    		this.listener = listener;
+    	}
+    	
+    	private boolean exec() {
+    		try {
+                if (!isSkipDecorate()) {
+                	for (String tag: getNameAndTag()) {
+                		build.setDisplayName(build.getDisplayName() + " " + tag);
+                	}
+                }
+
+                return
+                    maybeLogin() &&
+                    isSkipBuild() ? maybeTagOnly() : buildAndTag() &&
+                    isSkipPush() ? true : dockerPushCommand();
+
+            } catch (IOException e) {
+                return recordException(e);
+            } catch (InterruptedException e) {
+                return recordException(e);
+            } catch (MacroEvaluationException e) {
+                return recordException(e);
             }
+    	}
+    	
+    	private String expandAll(String s) throws MacroEvaluationException, IOException, InterruptedException {
+    		return TokenMacro.expandAll(build, listener, s);
+    	}
+    	
+        /**
+         * This tag is what is used to build, tag and push the registry.
+         */
+        private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
+        	List<String> tags = new ArrayList<String>();
+            if (!defined(getRepoTag())) {
+            	tags.add(expandAll(repoName));
+            } else {
+            	for (String rt: getRepoTag().trim().split(",")) {
+            		tags.add(expandAll(repoName + ":" + rt));
+            	}
+            	if (!isSkipTagLatest()) {
+            		tags.add(expandAll(repoName + ":latest"));
+            	}
+            }
+        	return tags;
+        }
+        
+        private boolean maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
+        	List<String> result = new ArrayList<String>();
+            if (!defined(getRepoTag())) {
+                result.add("echo 'Nothing to build or tag'");
+            } else {
+            	for (String tag : getNameAndTag()) {
+            		result.add("docker tag " + getRepoName() + " " + tag);
+            	}
+            }
+            return executeCmd(result);
+        }
+        
+		private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
+			String context = defined(getDockerfilePath()) ?
+					getDockerfilePath() : ".";
+			Iterator<String> i = getNameAndTag().iterator();
+			Result lastResult = new Result();
+			if (i.hasNext()) {
+				lastResult = executeCmd("docker build -t " + i.next()
+						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+						+ context);
+			}
+			// get the image to save rebuilding it to apply the other tags
+			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
+			Matcher m = p.matcher(lastResult.stdout);
+			String image = m.find() ? m.group(1) : null;
+			if (image != null) {
+				// we know the image name so apply the tags directly
+				while (lastResult.result && i.hasNext()) {
+					lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
+				}
+			} else {
+				// we don't know the image name so rebuild the image for each tag
+				while (lastResult.result && i.hasNext()) {
+					lastResult = executeCmd("docker build -t " + i.next()
+							+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+							+ context);
+				}
+			}
+			return lastResult.result;
+		}
 
-            return
-                maybeLogin(build, launcher, listener) &&
-                executeCmd(build, launcher, listener, dockerBuildCommand(build, listener)) &&
-                maybePush(build, launcher, listener);
-
-        } catch (IOException e) {
-            return recordException(listener, e);
-        } catch (InterruptedException e) {
-            return recordException(listener, e);
-        } catch (MacroEvaluationException e) {
-            return recordException(listener, e);
+        private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
+        	List<String> result = new ArrayList<String>();
+        	for (String tag: getNameAndTag()) {
+        		result.add("docker push " + tag);
+        	}
+        	return executeCmd(result);
+        }
+    	
+        private boolean maybeLogin() throws IOException, InterruptedException {
+            if (defined(getDescriptor().getPassword())) {
+                listener.getLogger().println("No credentials provided, so not logging in to the registry.");
+                return true;
+            } else {
+                return executeCmd(dockerLoginCommand());
+            }
         }
 
-    }
-
-    private boolean maybeLogin(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        if (getDescriptor().getPassword() == null || getDescriptor().getPassword().isEmpty()) {
-            listener.getLogger().println("No credentials provided, so not logging in to the registry.");
-            return true;
-        } else {
-            return executeCmd(build, launcher, listener, dockerLoginCommand());
-        }
-    }
-
-    private boolean maybePush(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException, MacroEvaluationException {
-        if (!isSkipPush()) {
-            return executeCmd(build, launcher, listener, dockerPushCommand(build, listener));
-        } else {
-            return true;
-        }
-    }
-
-    private boolean executeCmd(AbstractBuild build, Launcher launcher, BuildListener listener, ArgumentListBuilder args) throws IOException, InterruptedException {
-        return launcher.launch()
-            .envs(build.getEnvironment(listener))
-            .pwd(build.getWorkspace())
-            .stdout(listener.getLogger())
-            .stderr(listener.getLogger())
-            .cmds(args)
-            .start().join() == 0;
-    }
-
-
-    private boolean executeCmd(AbstractBuild build, Launcher launcher, BuildListener listener, String cmd) throws IOException, InterruptedException {
-        return launcher.launch()
+        private boolean executeCmd(ArgumentListBuilder args) throws IOException, InterruptedException {
+            return launcher.launch()
                 .envs(build.getEnvironment(listener))
                 .pwd(build.getWorkspace())
                 .stdout(listener.getLogger())
                 .stderr(listener.getLogger())
-                .cmdAsSingleString(cmd)
+                .cmds(args)
                 .start().join() == 0;
+        }
+
+        private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
+        	Iterator<String> i = cmds.iterator();
+        	Result lastResult = new Result();
+        	// if a command fails, do not continue
+        	while (lastResult.result && i.hasNext()) {
+        		lastResult = executeCmd(i.next());
+        	}
+        	return lastResult.result;
+        }
+
+        private Result executeCmd(String cmd) throws IOException, InterruptedException {
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+            boolean result = launcher.launch()
+                    .envs(build.getEnvironment(listener))
+                    .pwd(build.getWorkspace())
+                    .stdout(stdout)
+                    .stderr(stderr)
+                    .cmdAsSingleString(cmd)
+                    .start().join() == 0;
+            String stdoutStr = stdout.toString();
+            listener.getLogger().println(stdoutStr);
+            listener.getLogger().println(stderr.toString());
+            return new Result(result, stdoutStr);
+        }
+
+        private boolean recordException(Exception e) {
+            listener.error(e.getMessage());
+            e.printStackTrace(listener.getLogger());
+            return false;
+        }
+    	
     }
-
-
-    private boolean recordException(BuildListener listener, Exception e) {
-        listener.error(e.getMessage());
-        e.printStackTrace(listener.getLogger());
-        return false;
-    }
-
 
     @Override
     public DescriptorImpl getDescriptor() {

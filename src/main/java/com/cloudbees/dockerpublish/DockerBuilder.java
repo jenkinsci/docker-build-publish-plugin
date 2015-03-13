@@ -149,7 +149,7 @@ public class DockerBuilder extends Builder {
             if (!defined(getRepoTag())) {
             	tags.add(expandAll(repoName));
             } else {
-            	for (String rt: getRepoTag().trim().split(",")) {
+            	for (String rt: expandAll(getRepoTag()).trim().split(",")) {
             		tags.add(expandAll(repoName + ":" + rt));
             	}
             	if (!isSkipTagLatest()) {

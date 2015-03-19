@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 public class DockerBuilder extends Builder {
     private final String repoName;
     private final boolean noCache;
+    private final boolean noForcePull;
     private final String dockerfilePath;
     private final boolean skipBuild;
     private final boolean skipDecorate;
@@ -49,11 +50,12 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean noForcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this.repoName = repoName;
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
+        this.noForcePull = noForcePull;
         this.dockerfilePath = dockerfilePath;
         this.skipBuild = skipBuild;
         this.skipDecorate = skipDecorate;
@@ -67,6 +69,7 @@ public class DockerBuilder extends Builder {
     public boolean isSkipDecorate() { return skipDecorate;}
     public boolean isSkipTagLatest() { return skipTagLatest;}
     public boolean isNoCache() { return noCache;}
+    public boolean isForcePull() { return !noForcePull;}
     public String getDockerfilePath() { return dockerfilePath; }
 
 
@@ -179,6 +182,7 @@ public class DockerBuilder extends Builder {
 			if (i.hasNext()) {
 				lastResult = executeCmd("docker build -t " + i.next()
 						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+						+ ((isForcePull()) ? " --pull=true " : "") + " "
 						+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
@@ -195,6 +199,7 @@ public class DockerBuilder extends Builder {
 				while (lastResult.result && i.hasNext()) {
 					lastResult = executeCmd("docker build -t " + i.next()
 							+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+							+ ((isForcePull()) ? " --pull=true " : "") + " "
 							+ context);
 				}
 			}

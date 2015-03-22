@@ -18,7 +18,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 
-import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -239,8 +239,9 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-            ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+			PrintStream stdout = listener.getLogger();
+			PrintStream stderr = listener.getLogger();
+
             boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))
                     .pwd(build.getWorkspace())
@@ -249,8 +250,6 @@ public class DockerBuilder extends Builder {
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
             String stdoutStr = stdout.toString();
-            listener.getLogger().println(stdoutStr);
-            listener.getLogger().println(stderr.toString());
             return new Result(result, stdoutStr);
         }
 

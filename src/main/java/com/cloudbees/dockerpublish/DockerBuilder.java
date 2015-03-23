@@ -239,8 +239,8 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-			PrintStream stdout = listener.getLogger();
-			PrintStream stderr = listener.getLogger();
+            PrintStream stdout = listener.getLogger();
+            PrintStream stderr = listener.getLogger();
 
             boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))

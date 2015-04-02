@@ -22,8 +22,8 @@
         <f:checkbox />
    </f:entry>
 
-   <f:entry title="No Force Pull" field="noForcePull"
-        description="Don't update the source image before building when it exists locally">
+   <f:entry title="Force Pull" field="forcePull"
+        description="Update the source image before building even when it exists locally">
         <f:checkbox />
    </f:entry>
 

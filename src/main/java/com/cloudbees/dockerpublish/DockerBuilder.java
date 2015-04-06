@@ -332,7 +332,7 @@ public class DockerBuilder extends Builder {
          * This human readable name is used in the configuration screen.
          */
         public String getDisplayName() {
-            return "Docker build and publish";
+            return "CloudBees Docker Build and Publish";
         }
 
         @Override

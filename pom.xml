@@ -13,9 +13,9 @@
   <packaging>hpi</packaging>
 
 
-  <name>Docker Build and Publish plugin</name>
+  <name>CloudBees Docker Build and Publish plugin</name>
   <description>
-    This plugin builds Dockerfile based projects and publishes them to the docker registry.
+    This plugin provides the ability to build projects with a Dockerfile, and publish the resultant tagged image (repo) to a Docker registry.
   </description>
   <url>https://github.com/jenkinsci/docker-build-publish-plugin/blob/master/README.md</url>
   <licenses>

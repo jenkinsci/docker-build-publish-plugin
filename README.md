@@ -5,6 +5,7 @@
 If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck! This is an early version - tweet @michaelneale if you have questions.
 
 Features:
+
    * Only a Dockerfile needed to build your project
    * Publish to docker index/registry
    * nocache option (for rebuild of all Dockerfile steps)
@@ -16,6 +17,9 @@ Features:
 ## Dockerfile as build config
 
 A Dockerfile is a convenient way to express build instructions.
+This plugin will use the Dockerfile in the workspace (possibly previously checked out from git)
+and will invoke `docker build` to create the Docker image.
+The result can be automatically uploaded to the Docker Registry or a private registry.
 
 As the Beatles sang, all you need is Dockerfile, and love. If you have a Dockerfile in the root
 of your project, then no further configuration is needed.
@@ -24,11 +28,15 @@ of your project, then no further configuration is needed.
 
 Firstly, ensure you have docker running (if you are running with a slave, ensure the slave can run docker) - and that Jenkins can run docker commands.
 
-Setup a build of any type - with a build step that uses Docker:
-![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
-The usual docker build caching mechanism applies - and you can choose to publish, or not, the resultant image.
+Setup a build of any type - with a `CloudBees Docker Build and Publish` build step.
+You can use the example under [`src/test/example`](https://github.com/jenkinsci/docker-build-publish-plugin/tree/master/src/test/example) to build a very simple busybox based image,
+and push it to `jenkinsci/docker-build-and-publish-example`.
 
-Set your credentials (username, email, password) in Manage Jenkins - these are used to access index.docker.io, this includes private repositories:
+![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
+
+The usual Docker build caching mechanism applies - and you can choose to publish, or not, the resultant image, configured under Advanced options.
+
+In order to push to a registry, set your credentials (username, email, password) in Manage Jenkins. By default these are used to access the Docker Registry at index.docker.io, this includes private repositories:
 
 ![build config](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/registry-setup.png)
 Your credentials are needed if you wish to push  (to public or private repos) - or need to build based on a private repo.

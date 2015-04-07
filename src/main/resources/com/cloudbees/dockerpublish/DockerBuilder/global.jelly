@@ -11,7 +11,7 @@
     tags they use. Views are always organized according to its owner class,
     so it should be straightforward to find them.
   -->
-  <f:section title="Docker Image Builder">
+  <f:section title="Configure Docker Registry: CloudBees Docker Build and Publish">
 
     <f:entry title="Username" field="userName">
       <f:textbox />

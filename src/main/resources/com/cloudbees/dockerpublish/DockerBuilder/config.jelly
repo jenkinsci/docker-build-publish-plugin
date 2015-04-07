@@ -24,7 +24,7 @@
 
    <f:entry title="Force Pull" field="forcePull"
         description="Update the source image before building even when it exists locally">
-        <f:checkbox />
+        <f:checkbox default="true" />
    </f:entry>
 
    <f:entry title="Skip Build" field="skipBuild"

@@ -186,7 +186,7 @@ public class DockerBuilder extends Builder {
 						+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
-			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
+			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-f]*).*?", Pattern.DOTALL);
 			Matcher m = p.matcher(lastResult.stdout);
 			String image = m.find() ? m.group(1) : null;
 			if (image != null) {

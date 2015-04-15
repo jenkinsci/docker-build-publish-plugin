@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
-  <version>0.14-SNAPSHOT</version>
+  <version>0.16-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
 

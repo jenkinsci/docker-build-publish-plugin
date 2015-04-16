@@ -15,12 +15,15 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.jenkinsci.plugins.docker.commons.KeyMaterial;
 import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
+import org.jenkinsci.plugins.docker.commons.DockerServerEndpoint;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -36,6 +39,9 @@ public class DockerBuilder extends Builder {
 
     private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
 
+    private static final Logger logger = Logger.getLogger(DockerBuilder.class.getName());
+
+    private final DockerServerEndpoint server;
     private final DockerRegistryEndpoint registry;
     private final String repoName;
     private final boolean noCache;
@@ -53,7 +59,8 @@ public class DockerBuilder extends Builder {
     * for the actual HTML fragment for the configuration screen.
     */
     @DataBoundConstructor
-    public DockerBuilder(DockerRegistryEndpoint registry, String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
+    public DockerBuilder(DockerServerEndpoint server, DockerRegistryEndpoint registry, String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
+        this.server = server;
         this.registry = registry;
         this.repoName = repoName;
         this.repoTag = repoTag;
@@ -66,6 +73,7 @@ public class DockerBuilder extends Builder {
         this.skipTagLatest = skipTagLatest;
     }
 
+    public DockerServerEndpoint getServer() { return server; }
     public DockerRegistryEndpoint getRegistry() {return registry; }
     public String getRepoName() {return repoName; }
     public String getRepoTag() {  return repoTag; }
@@ -234,14 +242,20 @@ public class DockerBuilder extends Builder {
             TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
             PrintStream stderr = listener.getLogger();
 
-            KeyMaterial key = null;
+            logger.log(Level.FINER, "Executing: {0}", cmd);
+
+            KeyMaterial registryKey = null;
+            KeyMaterial serverKey = null;
             try {
-                // get Docker registry credentials
-                key = registry.materialize(build);
+                // Docker registry credentials
+                registryKey = registry.materialize(build);
+                // Docker server credentials
+                serverKey = server.materialize(build);
 
                 EnvVars env = new EnvVars();
                 env.putAll(build.getEnvironment(listener));
-                env.putAll(key.env());
+                env.putAll(registryKey.env());
+                env.putAll(serverKey.env());
     
                 boolean result = launcher.launch()
                         .envs(env)
@@ -253,8 +267,11 @@ public class DockerBuilder extends Builder {
                 return new Result(result, baos.toString("UTF8"));
 
             } finally {
-                if (key != null) {
-                    key.close();
+                if (registryKey != null) {
+                    registryKey.close();
+                }
+                if (serverKey != null) {
+                    serverKey.close();
                 }
             }
         }

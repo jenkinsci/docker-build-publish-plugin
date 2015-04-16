@@ -110,6 +110,7 @@ public class DockerBuilder extends Builder {
     }
 
     private static class TeePrintStream extends PrintStream {
+        // see http://stackoverflow.com/questions/1994255/how-to-write-console-output-to-a-txt-file#answer-1994721
         private final PrintStream second;
 
         public TeePrintStream(OutputStream main, PrintStream second) {

@@ -9,6 +9,7 @@ import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.output.TeeOutputStream;
 import org.jenkinsci.plugins.docker.commons.KeyMaterial;
 import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
@@ -31,6 +33,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @author Michael Neale
  */
 public class DockerBuilder extends Builder {
+
+    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
 
     private final DockerRegistryEndpoint registry;
     private final String repoName;
@@ -105,7 +109,12 @@ public class DockerBuilder extends Builder {
     		this.stdout = stdout;
     	}
     }
-    
+
+    static String getImageBuiltFromStdout(CharSequence stdout) {
+        Matcher m = IMAGE_BUILT_PATTERN.matcher(stdout);
+        return m.find() ? m.group(1) : null;
+    }
+
     private class Perform {
     	private final AbstractBuild build;
     	private final Launcher launcher;
@@ -184,9 +193,7 @@ public class DockerBuilder extends Builder {
 						+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
-			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
-			Matcher m = p.matcher(lastResult.stdout);
-			String image = m.find() ? m.group(1) : null;
+			String image = getImageBuiltFromStdout(lastResult.stdout);
 			if (image != null) {
 				// we know the image name so apply the tags directly
 				while (lastResult.result && i.hasNext()) {
@@ -223,7 +230,8 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            PrintStream stdout = listener.getLogger();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
             PrintStream stderr = listener.getLogger();
 
             KeyMaterial key = null;
@@ -242,8 +250,7 @@ public class DockerBuilder extends Builder {
                         .stderr(stderr)
                         .cmdAsSingleString(cmd)
                         .start().join() == 0;
-                String stdoutStr = stdout.toString();
-                return new Result(result, stdoutStr);
+                return new Result(result, baos.toString("UTF8"));
 
             } finally {
                 if (key != null) {

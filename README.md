@@ -13,6 +13,13 @@ Features:
    * manage registry credentials for private and public repos
    * tag the image built - use any Jenkins env. variables.
 
+## Upgrading
+
+In versions 1.0+ the plugin uses [https://wiki.jenkins-ci.org/display/JENKINS/Docker+Commons+Plugin](docker-commons-plugin)
+and the credentials plugin.
+When upgrading you need to add the credentials to each job that uses the plugin,
+the global fields are no longer used.
+
 
 ## Dockerfile as build config
 

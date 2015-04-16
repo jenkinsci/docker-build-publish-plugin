@@ -8,9 +8,11 @@
     <f:textbox />
   </f:entry>
 
-   <f:entry title="Tag" field="repoTag">
+  <f:entry title="Tag" field="repoTag">
     <f:textbox />
-   </f:entry>
+  </f:entry>
+
+  <f:property field="registry"/>
 
   <f:advanced>
 

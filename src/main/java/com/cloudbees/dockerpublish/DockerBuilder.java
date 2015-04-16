@@ -19,6 +19,7 @@ import org.kohsuke.stapler.QueryParameter;
 import javax.servlet.ServletException;
 
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,6 +107,44 @@ public class DockerBuilder extends Builder {
     		this.result = result;
     		this.stdout = stdout;
     	}
+    }
+
+    private static class TeePrintStream extends PrintStream {
+        private final PrintStream second;
+
+        public TeePrintStream(OutputStream main, PrintStream second) {
+            super(main);
+            this.second = second;
+        }
+
+        @Override
+        public void close() {
+            super.close();
+        }
+
+        @Override
+        public void flush() {
+            super.flush();
+            second.flush();
+        }
+
+        @Override
+        public void write(byte[] buf, int off, int len) {
+            super.write(buf, off, len);
+            second.write(buf, off, len);
+        }
+
+        @Override
+        public void write(int b) {
+            super.write(b);
+            second.write(b);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            super.write(b);
+            second.write(b);
+        }
     }
     
     private class Perform {
@@ -245,10 +284,10 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            PrintStream stdout = listener.getLogger();
             PrintStream stderr = listener.getLogger();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PrintStream recordingStdout = new PrintStream(baos);
+            PrintStream stdout = new TeePrintStream(listener.getLogger(), recordingStdout);
 
             boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))
@@ -257,9 +296,7 @@ public class DockerBuilder extends Builder {
                     .stderr(stderr)
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
-            String stdoutStr = baos.toString();
-            stdout.println(stdoutStr);
-            return new Result(result, stdoutStr);
+            return new Result(result, baos.toString());
         }
 
         private boolean recordException(Exception e) {

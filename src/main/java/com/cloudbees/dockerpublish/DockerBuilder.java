@@ -18,6 +18,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,6 +108,45 @@ public class DockerBuilder extends Builder {
     		this.stdout = stdout;
     	}
     }
+
+    private static class TeePrintStream extends PrintStream {
+        // see http://stackoverflow.com/questions/1994255/how-to-write-console-output-to-a-txt-file#answer-1994721
+        private final PrintStream second;
+
+        public TeePrintStream(OutputStream main, PrintStream second) {
+            super(main);
+            this.second = second;
+        }
+
+        @Override
+        public void close() {
+            super.close();
+        }
+
+        @Override
+        public void flush() {
+            super.flush();
+            second.flush();
+        }
+
+        @Override
+        public void write(byte[] buf, int off, int len) {
+            super.write(buf, off, len);
+            second.write(buf, off, len);
+        }
+
+        @Override
+        public void write(int b) {
+            super.write(b);
+            second.write(b);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            super.write(b);
+            second.write(b);
+        }
+    }
     
     private class Perform {
     	private final AbstractBuild build;
@@ -186,7 +227,7 @@ public class DockerBuilder extends Builder {
 						+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
-			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
+			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-f]*).*?", Pattern.DOTALL);
 			Matcher m = p.matcher(lastResult.stdout);
 			String image = m.find() ? m.group(1) : null;
 			if (image != null) {
@@ -244,18 +285,19 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            PrintStream stdout = listener.getLogger();
             PrintStream stderr = listener.getLogger();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream recordingStdout = new PrintStream(baos);
+            PrintStream stdout = new TeePrintStream(listener.getLogger(), recordingStdout);
 
             boolean result = launcher.launch()
                     .envs(build.getEnvironment(listener))
                     .pwd(build.getWorkspace())
-                    .stdout(stdout)
+                    .stdout(recordingStdout)
                     .stderr(stderr)
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
-            String stdoutStr = stdout.toString();
-            return new Result(result, stdoutStr);
+            return new Result(result, baos.toString());
         }
 
         private boolean recordException(Exception e) {

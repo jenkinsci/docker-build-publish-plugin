@@ -246,7 +246,9 @@ public class DockerBuilder extends Builder {
                 return new Result(result, stdoutStr);
 
             } finally {
-                key.close();
+                if (key != null) {
+                    key.close();
+                }
             }
         }
 

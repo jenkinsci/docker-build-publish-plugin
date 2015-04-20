@@ -128,8 +128,8 @@ public class DockerBuilder extends Builder {
 
                 return
                     maybeLogin() &&
-                    isSkipBuild() ? maybeTagOnly() : buildAndTag() &&
-                    isSkipPush() ? true : dockerPushCommand();
+                    (isSkipBuild() ? maybeTagOnly() : buildAndTag()) &&
+                    (isSkipPush() ? true : dockerPushCommand());
 
             } catch (IOException e) {
                 return recordException(e);

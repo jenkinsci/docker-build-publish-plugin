@@ -282,6 +282,7 @@ public class DockerBuilder extends Builder {
                 if (computer != null) {
                     Charset charset = computer.getDefaultCharset();
                     if (charset != null) {
+                        baos.flush();
                         stdoutStr = baos.toString(charset.name());
                     }
                 }

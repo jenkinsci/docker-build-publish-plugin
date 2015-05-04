@@ -47,7 +47,7 @@ public class DockerBuilder extends Builder {
 
     private static final Logger logger = Logger.getLogger(DockerBuilder.class.getName());
 
-    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile(".*?Successfully built ([0-9a-f]*).*?", Pattern.DOTALL);
+    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
 
     private final String repoName;
     private final boolean noCache;

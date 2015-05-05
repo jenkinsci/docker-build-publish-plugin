@@ -1,30 +1,40 @@
 package com.cloudbees.dockerpublish;
-import hudson.Launcher;
 import hudson.Extension;
+import hudson.Launcher;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Computer;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.AbstractProject;
-import hudson.tasks.Builder;
-import hudson.tasks.BuildStepDescriptor;
-import net.sf.json.JSONObject;
 
-import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
-import org.jenkinsci.plugins.tokenmacro.TokenMacro;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.QueryParameter;
-
-import javax.servlet.ServletException;
-
-import java.io.PrintStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.CheckForNull;
+import javax.servlet.ServletException;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.TeeOutputStream;
+import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
+import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 
 /**
@@ -34,6 +44,11 @@ import java.util.regex.Pattern;
  * @author Michael Neale
  */
 public class DockerBuilder extends Builder {
+
+    private static final Logger logger = Logger.getLogger(DockerBuilder.class.getName());
+
+    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
+
     private final String repoName;
     private final boolean noCache;
     private final boolean forcePull;
@@ -106,7 +121,13 @@ public class DockerBuilder extends Builder {
     		this.stdout = stdout;
     	}
     }
-    
+
+    @CheckForNull
+    static String getImageBuiltFromStdout(CharSequence stdout) {
+        Matcher m = IMAGE_BUILT_PATTERN.matcher(stdout);
+        return m.find() ? m.group(1) : null;
+    }
+
     private class Perform {
     	private final AbstractBuild build;
     	private final Launcher launcher;
@@ -186,9 +207,7 @@ public class DockerBuilder extends Builder {
 						+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
-			Pattern p = Pattern.compile(".*?Successfully built ([0-9a-z]*).*?");
-			Matcher m = p.matcher(lastResult.stdout);
-			String image = m.find() ? m.group(1) : null;
+			String image = getImageBuiltFromStdout(lastResult.stdout);
 			if (image != null) {
 				// we know the image name so apply the tags directly
 				while (lastResult.result && i.hasNext()) {
@@ -244,7 +263,8 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            PrintStream stdout = listener.getLogger();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
             PrintStream stderr = listener.getLogger();
 
             boolean result = launcher.launch()
@@ -254,7 +274,25 @@ public class DockerBuilder extends Builder {
                     .stderr(stderr)
                     .cmdAsSingleString(cmd)
                     .start().join() == 0;
-            String stdoutStr = stdout.toString();
+
+            // capture the stdout so it can be parsed later on
+            String stdoutStr = null;
+            try {
+                Computer computer = Computer.currentComputer();
+                if (computer != null) {
+                    Charset charset = computer.getDefaultCharset();
+                    if (charset != null) {
+                        baos.flush();
+                        stdoutStr = baos.toString(charset.name());
+                    }
+                }
+            } catch (UnsupportedEncodingException e) {
+                // we couldn't parse, ignore
+                logger.log(Level.FINE, "Unable to get stdout from launched command: {}", e);
+            } finally {
+                IOUtils.closeQuietly(baos);
+            }
+
             return new Result(result, stdoutStr);
         }
 

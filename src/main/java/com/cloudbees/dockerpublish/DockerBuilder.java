@@ -28,17 +28,15 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 
-import net.sf.json.JSONObject;
-
 import org.apache.commons.io.output.TeeOutputStream;
 import org.jenkinsci.plugins.docker.commons.KeyMaterial;
 import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
+import org.jenkinsci.plugins.docker.commons.DockerServerEndpoint;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 
 /**
@@ -53,6 +51,8 @@ public class DockerBuilder extends Builder {
 
     private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
 
+    @CheckForNull
+    private final DockerServerEndpoint server;
     @CheckForNull
     private DockerRegistryEndpoint registry;
     private String repoName;
@@ -69,7 +69,7 @@ public class DockerBuilder extends Builder {
 
     @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
-        this(null, repoName);
+        this(null, null, repoName);
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
@@ -81,9 +81,14 @@ public class DockerBuilder extends Builder {
     }
 
     @DataBoundConstructor
-    public DockerBuilder(DockerRegistryEndpoint registry, String repoName) {
+    public DockerBuilder(DockerServerEndpoint server, DockerRegistryEndpoint registry, String repoName) {
+        this.server = server;
         this.registry = registry;
         this.repoName = repoName;
+    }
+
+    public DockerServerEndpoint getServer() {
+        return server;
     }
 
     public DockerRegistryEndpoint getRegistry() {
@@ -335,11 +340,18 @@ public class DockerBuilder extends Builder {
 
             // get Docker registry credentials
             KeyMaterial registryKey = registry.newKeyMaterialFactory(build).materialize();
+            // Docker server credentials. If server is null (right after upgrading) do not use credentials
+            KeyMaterial serverKey = server == null ? null : server.newKeyMaterialFactory(build).materialize();
+
+            logger.log(Level.FINER, "Executing: {0}", cmd);
 
             try {
                 EnvVars env = new EnvVars();
                 env.putAll(build.getEnvironment(listener));
                 env.putAll(registryKey.env());
+                if (serverKey != null) {
+                    env.putAll(serverKey.env());
+                }
     
                 boolean result = launcher.launch()
                         .envs(env)
@@ -369,6 +381,9 @@ public class DockerBuilder extends Builder {
 
             } finally {
                 registryKey.close();
+                if (serverKey != null) {
+                    serverKey.close();
+                }
             }
         }
 

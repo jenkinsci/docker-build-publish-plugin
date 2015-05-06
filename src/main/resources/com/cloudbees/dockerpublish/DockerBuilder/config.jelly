@@ -12,6 +12,7 @@
     <f:textbox />
   </f:entry>
 
+  <f:property field="server"/>
   <f:property field="registry"/>
 
   <f:advanced>

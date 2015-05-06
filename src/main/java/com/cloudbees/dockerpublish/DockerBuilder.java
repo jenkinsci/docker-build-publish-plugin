@@ -92,6 +92,19 @@ public class DockerBuilder extends Builder {
     }
 
     public DockerRegistryEndpoint getRegistry() {
+        // coming from an older version <1.0 ? let's try to parse the registry
+        // TODO should do this on the descriptor readResolve ?
+        if (registry == null) {
+            registry = DockerRegistryEndpoint.fromImageName(repoName, null);
+            if (registry.getUrl() != null) {
+                repoName = repoName.substring(repoName.indexOf('/') + 1); // take out the host:port part
+                logger.log(
+                        Level.WARNING,
+                        "Using registry from old configuration field, you may need to configure credentials in the build step: {0} {1}",
+                        new String[] { registry.getUrl(), repoName });
+            }
+        }
+
         return registry;
     }
 
@@ -177,11 +190,7 @@ public class DockerBuilder extends Builder {
      * @throws IOException
      */
     public String getRepo() throws IOException {
-        if (registry == null) {
-            // after upgrading it can be null
-            return repoName;
-        }
-        return registry.imageName(repoName);
+        return getRegistry().imageName(repoName);
     }
 
 
@@ -329,17 +338,12 @@ public class DockerBuilder extends Builder {
         }
 
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            if (registry == null) {
-                // right after an upgrade
-                throw new IllegalStateException("Docker registry is not configured");
-            }
-
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
             PrintStream stderr = listener.getLogger();
 
             // get Docker registry credentials
-            KeyMaterial registryKey = registry.newKeyMaterialFactory(build).materialize();
+            KeyMaterial registryKey = getRegistry().newKeyMaterialFactory(build).materialize();
             // Docker server credentials. If server is null (right after upgrading) do not use credentials
             KeyMaterial serverKey = server == null ? null : server.newKeyMaterialFactory(build).materialize();
 

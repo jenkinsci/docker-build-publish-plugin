@@ -24,10 +24,9 @@
 package com.cloudbees.dockerpublish;
 
 import static org.junit.Assert.*;
+import hudson.model.Items;
 
 import java.net.URL;
-
-import jenkins.model.Jenkins;
 
 import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
 import org.junit.Test;
@@ -53,7 +52,7 @@ public class DockerBuilderTest {
         DockerBuilder original = new DockerBuilder(repo);
         original.setRegistry(null);
 
-        DockerBuilder builder = (DockerBuilder) Jenkins.XSTREAM.fromXML(Jenkins.XSTREAM.toXML(original));
+        DockerBuilder builder = (DockerBuilder) Items.XSTREAM2.fromXML(Items.XSTREAM2.toXML(original));
         DockerRegistryEndpoint registry = builder.getRegistry();
         assertEquals(url, registry.getEffectiveUrl().toString());
         assertEquals(image, builder.getRepoName());

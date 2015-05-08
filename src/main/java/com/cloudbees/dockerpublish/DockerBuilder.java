@@ -51,9 +51,7 @@ public class DockerBuilder extends Builder {
 
     private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
 
-    @CheckForNull
-    private final DockerServerEndpoint server;
-    @CheckForNull
+    private DockerServerEndpoint server;
     private DockerRegistryEndpoint registry;
     private String repoName;
     private boolean noCache;
@@ -69,7 +67,7 @@ public class DockerBuilder extends Builder {
 
     @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
-        this(null, null, repoName);
+        this(repoName);
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
@@ -81,9 +79,9 @@ public class DockerBuilder extends Builder {
     }
 
     @DataBoundConstructor
-    public DockerBuilder(DockerServerEndpoint server, DockerRegistryEndpoint registry, String repoName) {
-        this.server = server;
-        this.registry = registry;
+    public DockerBuilder(String repoName) {
+        this.server = new DockerServerEndpoint(null, null);
+        this.registry = new DockerRegistryEndpoint(null, null);
         this.repoName = repoName;
     }
 
@@ -91,21 +89,18 @@ public class DockerBuilder extends Builder {
         return server;
     }
 
-    public DockerRegistryEndpoint getRegistry() {
-        // coming from an older version <1.0 ? let's try to parse the registry
-        // TODO should do this on the descriptor readResolve ?
-        if (registry == null) {
-            registry = DockerRegistryEndpoint.fromImageName(repoName, null);
-            if (registry.getUrl() != null) {
-                repoName = repoName.substring(repoName.indexOf('/') + 1); // take out the host:port part
-                logger.log(
-                        Level.WARNING,
-                        "Using registry from old configuration field, you may need to configure credentials in the build step: {0} {1}",
-                        new String[] { registry.getUrl(), repoName });
-            }
-        }
+    @DataBoundSetter
+    public void setServer(DockerServerEndpoint server) {
+        this.server = server;
+    }
 
+    public DockerRegistryEndpoint getRegistry() {
         return registry;
+    }
+
+    @DataBoundSetter
+    public void setRegistry(DockerRegistryEndpoint registry) {
+        this.registry = registry;
     }
 
     public String getRepoName() {
@@ -397,6 +392,21 @@ public class DockerBuilder extends Builder {
             return false;
         }
     	
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        // coming from an older version <1.0 ? let's try to parse the registry
+        if (registry == null) {
+            registry = DockerRegistryEndpoint.fromImageName(repoName, null);
+            if (registry.getUrl() != null) {
+                repoName = repoName.substring(repoName.indexOf('/') + 1); // take out the host:port part
+                logger.log(
+                        Level.WARNING,
+                        "Using Docker registry from old configuration field, you may need to configure credentials in the build step: {0} {1}",
+                        new String[] { registry.getUrl(), repoName });
+            }
+        }
+        return this;
     }
 
     @Override

@@ -27,6 +27,8 @@ import static org.junit.Assert.*;
 
 import java.net.URL;
 
+import jenkins.model.Jenkins;
+
 import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
 import org.junit.Test;
 
@@ -39,7 +41,7 @@ import com.google.common.io.Resources;
 public class DockerBuilderTest {
 
     @Test
-    public void testUpgrade() throws Exception {
+    public void testReadResolve() throws Exception {
         assertRegistry("https://index.docker.io/v1/", "acme/test", "acme/test");
         assertRegistry("https://index.docker.io/v1/", "busybox", "busybox");
         assertRegistry("https://docker.acme.com:8080", "acme/test", "docker.acme.com:8080/acme/test");
@@ -48,7 +50,10 @@ public class DockerBuilderTest {
     }
 
     private void assertRegistry(String url, String image, String repo) throws Exception {
-        DockerBuilder builder = new DockerBuilder(null, null, repo);
+        DockerBuilder original = new DockerBuilder(repo);
+        original.setRegistry(null);
+
+        DockerBuilder builder = (DockerBuilder) Jenkins.XSTREAM.fromXML(Jenkins.XSTREAM.toXML(original));
         DockerRegistryEndpoint registry = builder.getRegistry();
         assertEquals(url, registry.getEffectiveUrl().toString());
         assertEquals(image, builder.getRepoName());

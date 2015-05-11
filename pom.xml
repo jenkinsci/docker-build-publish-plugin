@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
-  <version>0.16-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
 
@@ -48,12 +48,17 @@
   </pluginRepositories>
 
   <dependencies>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>token-macro</artifactId>
-            <version>1.10</version>
-        </dependency>
-    </dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>docker-commons</artifactId>
+      <version>1.0-alpha-10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>token-macro</artifactId>
+      <version>1.10</version>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>

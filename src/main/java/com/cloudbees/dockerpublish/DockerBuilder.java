@@ -1,4 +1,6 @@
 package com.cloudbees.dockerpublish;
+
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
@@ -7,11 +9,11 @@ import hudson.model.AbstractProject;
 import hudson.model.Computer;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -26,15 +28,15 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 
-import net.sf.json.JSONObject;
-
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.TeeOutputStream;
+import org.jenkinsci.plugins.docker.commons.KeyMaterial;
+import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
+import org.jenkinsci.plugins.docker.commons.DockerServerEndpoint;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 
 /**
@@ -49,24 +51,23 @@ public class DockerBuilder extends Builder {
 
     private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
 
-    private final String repoName;
-    private final boolean noCache;
-    private final boolean forcePull;
-    private final String dockerfilePath;
-    private final boolean skipBuild;
-    private final boolean skipDecorate;
+    private DockerServerEndpoint server;
+    private DockerRegistryEndpoint registry;
+    private String repoName;
+    private boolean noCache;
+    private boolean forcePull;
+    @CheckForNull
+    private String dockerfilePath;
+    private boolean skipBuild;
+    private boolean skipDecorate;
+    @CheckForNull
     private String repoTag;
     private boolean skipPush = true;
-    private final boolean skipTagLatest;
+    private boolean skipTagLatest;
 
-    /**
-    *
-    * See <tt>src/main/resources/hudson/plugins/hello_world/DockerBuilder/config.jelly</tt>
-    * for the actual HTML fragment for the configuration screen.
-    */
-    @DataBoundConstructor
+    @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
-        this.repoName = repoName;
+        this(repoName);
         this.repoTag = repoTag;
         this.skipPush = skipPush;
         this.noCache = noCache;
@@ -77,32 +78,121 @@ public class DockerBuilder extends Builder {
         this.skipTagLatest = skipTagLatest;
     }
 
-    public String getRepoName() {return repoName; }
-    public String getRepoTag() {  return repoTag; }
-    public boolean isSkipPush() { return skipPush;}
-    public boolean isSkipBuild() { return skipBuild;}
-    public boolean isSkipDecorate() { return skipDecorate;}
-    public boolean isSkipTagLatest() { return skipTagLatest;}
-    public boolean isNoCache() { return noCache;}
-    public boolean isForcePull() { return forcePull;}
-    public String getDockerfilePath() { return dockerfilePath; }
+    @DataBoundConstructor
+    public DockerBuilder(String repoName) {
+        this.server = new DockerServerEndpoint(null, null);
+        this.registry = new DockerRegistryEndpoint(null, null);
+        this.repoName = repoName;
+    }
 
+    public DockerServerEndpoint getServer() {
+        return server;
+    }
+
+    @DataBoundSetter
+    public void setServer(DockerServerEndpoint server) {
+        this.server = server;
+    }
+
+    public DockerRegistryEndpoint getRegistry() {
+        return registry;
+    }
+
+    @DataBoundSetter
+    public void setRegistry(DockerRegistryEndpoint registry) {
+        this.registry = registry;
+    }
+
+    public String getRepoName() {
+        return repoName;
+    }
+
+    public boolean isNoCache() {
+        return noCache;
+    }
+
+    @DataBoundSetter
+    public void setNoCache(boolean noCache) {
+        this.noCache = noCache;
+    }
+
+    public boolean isForcePull() {
+        return forcePull;
+    }
+
+    @DataBoundSetter
+    public void setForcePull(boolean forcePull) {
+        this.forcePull = forcePull;
+    }
+
+    public String getDockerfilePath() {
+        return dockerfilePath;
+    }
+
+    @DataBoundSetter
+    public void setDockerfilePath(String dockerfilePath) {
+        this.dockerfilePath = dockerfilePath;
+    }
+
+    public boolean isSkipBuild() {
+        return skipBuild;
+    }
+
+    @DataBoundSetter
+    public void setSkipBuild(boolean skipBuild) {
+        this.skipBuild = skipBuild;
+    }
+
+    public boolean isSkipDecorate() {
+        return skipDecorate;
+    }
+
+    @DataBoundSetter
+    public void setSkipDecorate(boolean skipDecorate) {
+        this.skipDecorate = skipDecorate;
+    }
+
+    public String getRepoTag() {
+        return repoTag;
+    }
+
+    @DataBoundSetter
+    public void setRepoTag(String repoTag) {
+        this.repoTag = repoTag;
+    }
+
+    public boolean isSkipPush() {
+        return skipPush;
+    }
+
+    @DataBoundSetter
+    public void setSkipPush(boolean skipPush) {
+        this.skipPush = skipPush;
+    }
+
+    public boolean isSkipTagLatest() {
+        return skipTagLatest;
+    }
+
+    @DataBoundSetter
+    public void setSkipTagLatest(boolean skipTagLatest) {
+        this.skipTagLatest = skipTagLatest;
+    }
+
+    /**
+     * Fully qualified repository/image name with the registry url in front
+     * @return ie. docker.acme.com/jdoe/busybox
+     * @throws IOException
+     */
+    public String getRepo() throws IOException {
+        return getRegistry().imageName(repoName);
+    }
 
 
     private boolean defined(String s) {
     	return s != null && !s.trim().isEmpty();
     }
     
-    /** Mask the password. Future: use oauth token instead with Oauth sign in */
-    private ArgumentListBuilder dockerLoginCommand() {
-        ArgumentListBuilder args = new ArgumentListBuilder();
-        args.add("docker").add("login").add("-u").add(getDescriptor().getUserName()).add("-e").add(getDescriptor().getEmail()).add("-p").addMasked(getDescriptor().getPassword());
-        if (getDescriptor().getRegistryUrl() != null && !getDescriptor().getRegistryUrl().trim().isEmpty()) {
-            args.add(getDescriptor().getRegistryUrl());
-        }
-        return args;
-    }
-
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
     	return new Perform(build, launcher, listener).exec();
@@ -148,7 +238,6 @@ public class DockerBuilder extends Builder {
                 }
 
                 return
-                    maybeLogin() &&
                     (isSkipBuild() ? maybeTagOnly() : buildAndTag()) &&
                     (isSkipPush() ? true : dockerPushCommand());
 
@@ -171,13 +260,13 @@ public class DockerBuilder extends Builder {
         private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
         	List<String> tags = new ArrayList<String>();
             if (!defined(getRepoTag())) {
-            	tags.add(expandAll(repoName));
+                tags.add(expandAll(getRepo()));
             } else {
             	for (String rt: expandAll(getRepoTag()).trim().split(",")) {
-            		tags.add(expandAll(repoName + ":" + rt));
+                    tags.add(expandAll(getRepo() + ":" + rt));
             	}
             	if (!isSkipTagLatest()) {
-            		tags.add(expandAll(repoName + ":latest"));
+                    tags.add(expandAll(getRepo() + ":latest"));
             	}
             }
         	return tags;
@@ -189,7 +278,7 @@ public class DockerBuilder extends Builder {
                 result.add("echo 'Nothing to build or tag'");
             } else {
             	for (String tag : getNameAndTag()) {
-            		result.add("docker tag " + getRepoName() + " " + tag);
+                    result.add("docker tag " + getRepo() + " " + tag);
             	}
             }
             return executeCmd(result);
@@ -232,25 +321,6 @@ public class DockerBuilder extends Builder {
         	}
         	return executeCmd(result);
         }
-    	
-        private boolean maybeLogin() throws IOException, InterruptedException {
-            if (!defined(getDescriptor().getPassword())) {
-                listener.getLogger().println("No credentials provided, so not logging in to the registry.");
-                return true;
-            } else {
-                return executeCmd(dockerLoginCommand());
-            }
-        }
-
-        private boolean executeCmd(ArgumentListBuilder args) throws IOException, InterruptedException {
-            return launcher.launch()
-                .envs(build.getEnvironment(listener))
-                .pwd(build.getWorkspace())
-                .stdout(listener.getLogger())
-                .stderr(listener.getLogger())
-                .cmds(args)
-                .start().join() == 0;
-        }
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
         	Iterator<String> i = cmds.iterator();
@@ -267,33 +337,53 @@ public class DockerBuilder extends Builder {
             TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
             PrintStream stderr = listener.getLogger();
 
-            boolean result = launcher.launch()
-                    .envs(build.getEnvironment(listener))
-                    .pwd(build.getWorkspace())
-                    .stdout(stdout)
-                    .stderr(stderr)
-                    .cmdAsSingleString(cmd)
-                    .start().join() == 0;
+            // get Docker registry credentials
+            KeyMaterial registryKey = getRegistry().newKeyMaterialFactory(build).materialize();
+            // Docker server credentials. If server is null (right after upgrading) do not use credentials
+            KeyMaterial serverKey = server == null ? null : server.newKeyMaterialFactory(build).materialize();
 
-            // capture the stdout so it can be parsed later on
-            String stdoutStr = null;
+            logger.log(Level.FINER, "Executing: {0}", cmd);
+
             try {
-                Computer computer = Computer.currentComputer();
-                if (computer != null) {
-                    Charset charset = computer.getDefaultCharset();
-                    if (charset != null) {
-                        baos.flush();
-                        stdoutStr = baos.toString(charset.name());
-                    }
+                EnvVars env = new EnvVars();
+                env.putAll(build.getEnvironment(listener));
+                env.putAll(registryKey.env());
+                if (serverKey != null) {
+                    env.putAll(serverKey.env());
                 }
-            } catch (UnsupportedEncodingException e) {
-                // we couldn't parse, ignore
-                logger.log(Level.FINE, "Unable to get stdout from launched command: {}", e);
-            } finally {
-                IOUtils.closeQuietly(baos);
-            }
+    
+                boolean result = launcher.launch()
+                        .envs(env)
+                        .pwd(build.getWorkspace())
+                        .stdout(stdout)
+                        .stderr(stderr)
+                        .cmdAsSingleString(cmd)
+                        .start().join() == 0;
 
-            return new Result(result, stdoutStr);
+                // capture the stdout so it can be parsed later on
+                String stdoutStr = null;
+                try {
+                    Computer computer = Computer.currentComputer();
+                    if (computer != null) {
+                        Charset charset = computer.getDefaultCharset();
+                        if (charset != null) {
+                            baos.flush();
+                            stdoutStr = baos.toString(charset.name());
+                        }
+                    }
+                } catch (UnsupportedEncodingException e) {
+                    // we couldn't parse, ignore
+                    logger.log(Level.FINE, "Unable to get stdout from launched command: {}", e);
+                }
+
+                return new Result(result, stdoutStr);
+
+            } finally {
+                registryKey.close();
+                if (serverKey != null) {
+                    serverKey.close();
+                }
+            }
         }
 
         private boolean recordException(Exception e) {
@@ -304,6 +394,21 @@ public class DockerBuilder extends Builder {
     	
     }
 
+    private Object readResolve() throws ObjectStreamException {
+        // coming from an older version <1.0 ? let's try to parse the registry
+        if (registry == null) {
+            registry = DockerRegistryEndpoint.fromImageName(repoName, null);
+            if (registry.getUrl() != null) {
+                repoName = repoName.substring(repoName.indexOf('/') + 1); // take out the host:port part
+                logger.log(
+                        Level.WARNING,
+                        "Using Docker registry from old configuration field, you may need to configure credentials in the build step: {0} {1}",
+                        new String[] { registry.getUrl(), repoName });
+            }
+        }
+        return this;
+    }
+
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();
@@ -311,14 +416,11 @@ public class DockerBuilder extends Builder {
 
     /**
      * Descriptor for {@link DockerBuilder}. Used as a singleton.
-     * The class is marked as public so that it can be accessed from views.
-     *
-     * <p>
-     * See <tt>src/main/resources/hudson/plugins/hello_world/DockerBuilder/global.jelly</tt>
-     * for the actual HTML fragment for the plugin global config screen.
      */
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+
+        // Using docker-commons now, methods left for backwards compatibility
 
         public String getUserName() {
             return userName;
@@ -329,14 +431,10 @@ public class DockerBuilder extends Builder {
         public String getEmail() { return email; }
         public String getRegistryUrl() { return registryUrl; }
 
-
-        private String userName;
-        private String password;
-        private String email;
-
-
-        private String registryUrl;
-
+        private transient String userName;
+        private transient String password;
+        private transient String email;
+        private transient String registryUrl;
 
         /**
          * In order to load the persisted global configuration, you have to 
@@ -373,19 +471,14 @@ public class DockerBuilder extends Builder {
             return "Docker Build and Publish";
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            userName = formData.getString("userName");
-            password = formData.getString("password");
-            email = formData.getString("email");
-            registryUrl = formData.getString("registryUrl");
-            save();
-            return super.configure(req,formData);
+       private Object readResolve()
+                throws ObjectStreamException {
+            // TODO if we want to retain backwards compatibility we need to create the registry credentials
+            // here, taking the old global fields and creating the credentials
+            // new DockerRegistryEndpoint(getRegistryUrl(), null);
+            // new UsernamePasswordCredentials(getUserName(), getPassword());
+            return this;
         }
-
 
     }
 }
-

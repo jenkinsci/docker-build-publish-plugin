@@ -15,7 +15,7 @@ Features:
 
 ## Upgrading
 
-In versions 1.0+ the plugin uses [https://wiki.jenkins-ci.org/display/JENKINS/Docker+Commons+Plugin](docker-commons-plugin)
+In versions 1.0+ the plugin uses [docker-commons-plugin](https://wiki.jenkins-ci.org/display/JENKINS/Docker+Commons+Plugin)
 and the credentials plugin.
 When upgrading you need to add the credentials to each job that uses the plugin,
 the global fields are no longer used.
@@ -35,28 +35,28 @@ of your project, then no further configuration is needed.
 
 Firstly, ensure you have docker running (if you are running with a slave, ensure the slave can run docker) - and that Jenkins can run docker commands.
 
-Setup a build of any type - with a `CloudBees Docker Build and Publish` build step.
+Setup a build of any type - with a _CloudBees Docker Build and Publish_ build step.
 You can use the example under [`src/test/example`](https://github.com/jenkinsci/docker-build-publish-plugin/tree/master/src/test/example) to build a very simple busybox based image,
 and push it to `acme/test`.
 
 ![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
 
-A remote Docker server can be configured providing its Docker server URI and creating a `Docker Server Certificate Authentication` credential containing the server certificates.
+A remote Docker server can be configured providing its Docker server URI and creating a _Docker Server Certificate Authentication_ credential containing the server certificates.
 
 ![server credentials](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/credentials_server.png)
 
 
-In order to push to a registry, set the `Docker Registry URL` and your credentials (username, password).
+In order to push to a registry, set the _Docker Registry URL_ and your credentials (username, password).
 By default these are used to access the Docker Registry at `index.docker.io`, but you can use private repositories.
 Credentials are needed in order to push (to public or private repos) - or need to build based on a private repo.
 
 The usual Docker build caching mechanism applies - and you can choose to publish, or not, the resultant image, configured under Advanced options.
 
-Builds will be decorated with the repository name (and tag) of the build images unless `Skip Decorate` is checked:
+Builds will be decorated with the repository name (and tag) of the build images unless _Skip Decorate_ is checked:
 
 ![build decoration](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-label.png)
 
-You can supply multiple tags for an image separated by commas. The latest tag is automatically applied to image - if you do not want this check the `Do not tag this build as latest` checkbox. 
+You can supply multiple tags for an image separated by commas. The latest tag is automatically applied to image - if you do not want this check the _Do not tag this build as latest_ checkbox. 
 
 ### Why use a Dockerfile
 

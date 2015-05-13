@@ -37,18 +37,23 @@ Firstly, ensure you have docker running (if you are running with a slave, ensure
 
 Setup a build of any type - with a `CloudBees Docker Build and Publish` build step.
 You can use the example under [`src/test/example`](https://github.com/jenkinsci/docker-build-publish-plugin/tree/master/src/test/example) to build a very simple busybox based image,
-and push it to `jenkinsci/docker-build-and-publish-example`.
+and push it to `acme/test`.
 
 ![build instructions](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-config.png)
 
+A remote Docker server can be configured providing its Docker server URI and creating a `Docker Server Certificate Authentication` credential containing the server certificates.
+
+![server credentials](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/credentials_server.png)
+
+
+In order to push to a registry, set the `Docker Registry URL` and your credentials (username, password).
+By default these are used to access the Docker Registry at `index.docker.io`, but you can use private repositories.
+Credentials are needed in order to push (to public or private repos) - or need to build based on a private repo.
+
 The usual Docker build caching mechanism applies - and you can choose to publish, or not, the resultant image, configured under Advanced options.
 
-In order to push to a registry, set your credentials (username, email, password) in Manage Jenkins. By default these are used to access the Docker Registry at index.docker.io, this includes private repositories:
+Builds will be decorated with the repository name (and tag) of the build images unless `Skip Decorate` is checked:
 
-![build config](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/registry-setup.png)
-Your credentials are needed if you wish to push  (to public or private repos) - or need to build based on a private repo.
-
-Builds will be decorated with the repository name (and tag) of the build images:
 ![build decoration](https://raw.githubusercontent.com/jenkinsci/docker-build-publish-plugin/master/build-label.png)
 
 You can supply multiple tags for an image separated by commas. The latest tag is automatically applied to image - if you do not want this check the `Do not tag this build as latest` checkbox. 
@@ -83,7 +88,7 @@ The following build environment is required to build this plugin
 
 To build the plugin locally:
 
-    mvn clean verify
+    mvn clean package
 
 ## Release
 

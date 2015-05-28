@@ -28,7 +28,7 @@ import hudson.model.Items;
 
 import java.net.URL;
 
-import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
+import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
 import org.junit.Test;
 
 import com.google.common.base.Charsets;

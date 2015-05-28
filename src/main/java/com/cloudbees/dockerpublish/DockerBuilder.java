@@ -29,9 +29,9 @@ import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 
 import org.apache.commons.io.output.TeeOutputStream;
-import org.jenkinsci.plugins.docker.commons.KeyMaterial;
-import org.jenkinsci.plugins.docker.commons.DockerRegistryEndpoint;
-import org.jenkinsci.plugins.docker.commons.DockerServerEndpoint;
+import org.jenkinsci.plugins.docker.commons.credentials.KeyMaterial;
+import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
+import org.jenkinsci.plugins.docker.commons.credentials.DockerServerEndpoint;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;

@@ -23,8 +23,15 @@
  */
 package com.cloudbees.dockerpublish;
 
+import hudson.model.Computer;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -39,6 +46,32 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class DockerCLIHelper {
     
     /**
+     * Parses console output from a {@link ByteArrayOutputStream}.
+     * @param output Output stream
+     * @param logger Logger
+     * @return Retrieved string or null if cannot retrieve it
+     * @throws IOException Buffer flush error
+     */
+    /*package*/ static @CheckForNull String getConsoleOutput(
+            @Nonnull ByteArrayOutputStream output, @Nonnull Logger logger) throws IOException {
+        String res = null;
+        try {
+            Computer computer = Computer.currentComputer();
+            if (computer != null) {
+                Charset charset = computer.getDefaultCharset();
+                if (charset != null) {
+                    output.flush();
+                    res = output.toString(charset.name());
+                }
+            }
+        } catch (UnsupportedEncodingException e) {
+            // we couldn't parse, ignore
+            logger.log(Level.FINE, "Unable to get a console output from launched command: {}", e);
+        }
+        return res;
+    }
+
+    /**
      * Retrieves an info about image from command-line outputs.
      * @param stdout Data output to be parsed
      * @return ImageId or null
@@ -46,7 +79,7 @@ public class DockerCLIHelper {
      * @since TODO
      */
     @CheckForNull
-    public static InspectImageResponse parseInspectImageResponse(String stdout) throws IOException {
+    public static InspectImageResponse parseInspectImageResponse(@Nonnull String stdout) throws IOException {
         JSONArray array = JSONArray.fromObject(stdout);
         if (array != null && array.size() > 0) {
             return new InspectImageResponse(array.getJSONObject(0));

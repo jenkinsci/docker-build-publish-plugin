@@ -1,0 +1,95 @@
+[
+  {
+    "Architecture": "amd64",
+    "Author": "Jesse Glick",
+    "Comment": "Workflow Plugin Pipeline Demo",
+    "Config": {
+        "AttachStderr": false,
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "Cmd": [
+            "/bin/sh",
+            "-c",
+            "/var/lib/jenkins/run.sh"
+        ],
+        "CpuShares": 0,
+        "Cpuset": "",
+        "Domainname": "",
+        "Entrypoint": null,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "MAVEN_VERSION=3.3.1",
+            "JETTY_VERSION=9.2.9.v20150224",
+            "REV=107ea141f5c7581056c6eb53d2ccd222cdf0d58c"
+        ],
+        "ExposedPorts": {
+            "22/tcp": {},
+            "8080/tcp": {},
+            "8081/tcp": {}
+        },
+        "Hostname": "1d42a20b09ac",
+        "Image": "5366517d611967756a43c63a3223dbf645c5e9be66d594d86802dee143aad93a",
+        "Labels": null,
+        "MacAddress": "",
+        "Memory": 0,
+        "MemorySwap": 0,
+        "NetworkDisabled": false,
+        "OnBuild": [],
+        "OpenStdin": false,
+        "PortSpecs": null,
+        "StdinOnce": false,
+        "Tty": false,
+        "User": "",
+        "Volumes": null,
+        "WorkingDir": "/var/lib/jenkins/workflow-plugin-pipeline-demo"
+    },
+    "Container": "3e5af3835a00a99092dc0e877e37f82bfee5a7d73ad63c93ecdba94d6e594665",
+    "ContainerConfig": {
+        "AttachStderr": false,
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "Cmd": [
+            "/bin/sh",
+            "-c",
+            "#(nop) EXPOSE 22/tcp 8080/tcp 8081/tcp"
+        ],
+        "CpuShares": 0,
+        "Cpuset": "",
+        "Domainname": "",
+        "Entrypoint": null,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "MAVEN_VERSION=3.3.1",
+            "JETTY_VERSION=9.2.9.v20150224",
+            "REV=107ea141f5c7581056c6eb53d2ccd222cdf0d58c"
+        ],
+        "ExposedPorts": {
+            "22/tcp": {},
+            "8080/tcp": {},
+            "8081/tcp": {}
+        },
+        "Hostname": "1d42a20b09ac",
+        "Image": "5366517d611967756a43c63a3223dbf645c5e9be66d594d86802dee143aad93a",
+        "Labels": null,
+        "MacAddress": "",
+        "Memory": 0,
+        "MemorySwap": 0,
+        "NetworkDisabled": false,
+        "OnBuild": [],
+        "OpenStdin": false,
+        "PortSpecs": null,
+        "StdinOnce": false,
+        "Tty": false,
+        "User": "",
+        "Volumes": null,
+        "WorkingDir": "/var/lib/jenkins/workflow-plugin-pipeline-demo"
+    },
+    "Created": "2015-04-01T14:15:30.700262841Z",
+    "DockerVersion": "1.5.0",
+    "Id": "5366517d611967756a43c63a3223dbf645c5e9be66d594d86802dee143aad93a",
+    "Os": "linux",
+    "Parent": "4300417211ebb75b48b06ed5640d641778f312072d24b37978682345cbb362b1",
+    "Size": 0,
+    "VirtualSize": 827600055
+  }
+]

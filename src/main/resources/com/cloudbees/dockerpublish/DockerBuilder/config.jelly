@@ -36,6 +36,10 @@
         description="Do not build the image">
         <f:checkbox />
     </f:entry>
+    
+    <f:entry title="${%Create fingerprints}" field="createFingerprint">
+        <f:checkbox default="true"/>
+    </f:entry>
 
     <f:entry title="Skip Decorate" field="skipDecorate"
         description="Do not decorate the build name">

@@ -1,12 +1,12 @@
 package com.cloudbees.dockerpublish;
 
+import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Computer;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -14,9 +14,7 @@ import hudson.util.FormValidation;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -26,12 +24,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.jenkinsci.plugins.docker.commons.credentials.KeyMaterial;
 import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
 import org.jenkinsci.plugins.docker.commons.credentials.DockerServerEndpoint;
+import org.jenkinsci.plugins.docker.commons.fingerprint.DockerFingerprints;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -63,6 +63,7 @@ public class DockerBuilder extends Builder {
     @CheckForNull
     private String repoTag;
     private boolean skipPush = true;
+    private boolean createFingerprint = true;
     private boolean skipTagLatest;
 
     @Deprecated
@@ -175,6 +176,15 @@ public class DockerBuilder extends Builder {
     }
 
     @DataBoundSetter
+    public void setCreateFingerprint(boolean createFingerprint) {
+        this.createFingerprint = createFingerprint;
+    }
+
+    public boolean isCreateFingerprint() {
+        return createFingerprint;
+    }
+   
+    @DataBoundSetter
     public void setSkipTagLatest(boolean skipTagLatest) {
         this.skipTagLatest = skipTagLatest;
     }
@@ -200,15 +210,17 @@ public class DockerBuilder extends Builder {
     
     private static class Result {
     	final boolean result;
-    	final String stdout;
+    	final @Nonnull String stdout;
+        final @Nonnull String stderr;
     	
     	private Result() {
-    		this(true, "");
+    		this(true, "", "");
     	}
     	
-    	private Result(boolean result, String stdout) {
+    	private Result(boolean result, @CheckForNull String stdout, @CheckForNull String stderr) {
     		this.result = result;
-    		this.stdout = stdout;
+    		this.stdout = hudson.Util.fixNull(stdout);
+                this.stderr = hudson.Util.fixNull(stderr);
     	}
     }
 
@@ -217,7 +229,7 @@ public class DockerBuilder extends Builder {
         Matcher m = IMAGE_BUILT_PATTERN.matcher(stdout);
         return m.find() ? m.group(1) : null;
     }
-
+    
     private class Perform {
     	private final AbstractBuild build;
     	private final Launcher launcher;
@@ -301,7 +313,8 @@ public class DockerBuilder extends Builder {
 				// we know the image name so apply the tags directly
 				while (lastResult.result && i.hasNext()) {
 					lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
-				}
+				}          
+                                processFingerprints(image);
 			} else {
 				// we don't know the image name so rebuild the image for each tag
 				while (lastResult.result && i.hasNext()) {
@@ -309,6 +322,7 @@ public class DockerBuilder extends Builder {
 							+ ((isNoCache()) ? " --no-cache=true " : "") + " "
 							+ ((isForcePull()) ? " --pull=true " : "") + " "
 							+ context);
+                                        processFingerprintsFromStdout(lastResult.stdout);
 				}
 			}
 			return lastResult.result;
@@ -332,10 +346,36 @@ public class DockerBuilder extends Builder {
         	return lastResult.result;
         }
 
+        /**
+         * Runs Docker command using Docker CLI.
+         * In this default implementation STDOUT and STDERR outputs will be printed to build logs.
+         * Use {@link #executeCmd(java.lang.String, boolean, boolean)} to alter the behavior.
+         * @param cmd Command to be executed
+         * @return Execution result
+         * @throws IOException Execution error
+         * @throws InterruptedException The build has been interrupted
+         */
         private Result executeCmd(String cmd) throws IOException, InterruptedException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            TeeOutputStream stdout = new TeeOutputStream(listener.getLogger(), baos);
-            PrintStream stderr = listener.getLogger();
+            return executeCmd(cmd, true, true);
+        }
+        
+        /**
+         * Runs Docker command using Docker CLI.
+         * @param cmd Command to be executed
+         * @param logStdOut If true, propagate STDOUT to the build log
+         * @param logStdErr If true, propagate STDERR to the build log
+         * @return Execution result
+         * @throws IOException Execution error
+         * @throws InterruptedException The build has been interrupted
+         */
+        private @Nonnull Result executeCmd( @Nonnull String cmd, 
+                boolean logStdOut, boolean logStdErr) throws IOException, InterruptedException {
+            ByteArrayOutputStream baosStdOut = new ByteArrayOutputStream();
+            ByteArrayOutputStream baosStdErr = new ByteArrayOutputStream();
+            OutputStream stdout = logStdOut ? 
+                    new TeeOutputStream(listener.getLogger(), baosStdOut) : baosStdOut;
+            OutputStream stderr = logStdErr ? 
+                    new TeeOutputStream(listener.getLogger(), baosStdErr) : baosStdErr;
 
             // get Docker registry credentials
             KeyMaterial registryKey = getRegistry().newKeyMaterialFactory(build).materialize();
@@ -361,22 +401,9 @@ public class DockerBuilder extends Builder {
                         .start().join() == 0;
 
                 // capture the stdout so it can be parsed later on
-                String stdoutStr = null;
-                try {
-                    Computer computer = Computer.currentComputer();
-                    if (computer != null) {
-                        Charset charset = computer.getDefaultCharset();
-                        if (charset != null) {
-                            baos.flush();
-                            stdoutStr = baos.toString(charset.name());
-                        }
-                    }
-                } catch (UnsupportedEncodingException e) {
-                    // we couldn't parse, ignore
-                    logger.log(Level.FINE, "Unable to get stdout from launched command: {}", e);
-                }
-
-                return new Result(result, stdoutStr);
+                final String stdOutStr = DockerCLIHelper.getConsoleOutput(baosStdOut, logger);
+                final String stdErrStr = DockerCLIHelper.getConsoleOutput(baosStdErr, logger);
+                return new Result(result, stdOutStr, stdErrStr);
 
             } finally {
                 registryKey.close();
@@ -384,6 +411,38 @@ public class DockerBuilder extends Builder {
                     serverKey.close();
                 }
             }
+        }
+        
+        void processFingerprintsFromStdout(@Nonnull String stdout) throws IOException, InterruptedException {
+            if (!createFingerprint) {
+                return;
+            }
+            
+            final String image = getImageBuiltFromStdout(stdout);
+            if (image == null) {
+                return;
+            }
+            processFingerprints(image);
+        }
+        
+        void processFingerprints(@Nonnull String image) throws IOException, InterruptedException {
+            if (!createFingerprint) {
+                return;
+            }
+            
+            // Retrieve full image ID using another call
+            final Result response = executeCmd("docker inspect " + image, false, true);
+            if (!response.result) {
+                return; // Bad result, cannot do anything
+            }
+            final InspectImageResponse rsp = DockerCLIHelper.parseInspectImageResponse(response.stdout);
+            if (rsp == null) {
+                return; // Cannot process the data
+            }
+            
+            //  Create or retrieve the fingerprint
+            DockerFingerprints.addFromFacet(rsp.getParent(), rsp.getId(), build);
+            
         }
 
         private boolean recordException(Exception e) {

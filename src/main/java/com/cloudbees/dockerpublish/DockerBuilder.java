@@ -57,6 +57,7 @@ public class DockerBuilder extends Builder {
     private String repoName;
     private boolean noCache;
     private boolean forcePull;
+    @CheckForNull
     private String buildContext;
     @CheckForNull
     private String dockerfilePath;

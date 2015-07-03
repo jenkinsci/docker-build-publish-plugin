@@ -1,6 +1,7 @@
 package com.cloudbees.dockerpublish;
 
 import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
@@ -34,6 +35,8 @@ import org.jenkinsci.plugins.docker.commons.credentials.DockerServerEndpoint;
 import org.jenkinsci.plugins.docker.commons.fingerprint.DockerFingerprints;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -481,18 +484,31 @@ public class DockerBuilder extends Builder {
 
         // Using docker-commons now, methods left for backwards compatibility
 
+        @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Methods left for backwards compatibility")
+        @SuppressWarnings("unused")
+        @Restricted(NoExternalUse.class)
         public String getUserName() {
             return userName;
         }
+        @SuppressWarnings("unused")
+        @Restricted(NoExternalUse.class)
         public String getPassword() {
             return password;
         }
+        @SuppressWarnings("unused")
+        @Restricted(NoExternalUse.class)
         public String getEmail() { return email; }
+        @SuppressWarnings("unused")
+        @Restricted(NoExternalUse.class)
         public String getRegistryUrl() { return registryUrl; }
 
+        @SuppressWarnings("unused")
         private transient String userName;
+        @SuppressWarnings("unused")
         private transient String password;
+        @SuppressWarnings("unused")
         private transient String email;
+        @SuppressWarnings("unused")
         private transient String registryUrl;
 
         /**

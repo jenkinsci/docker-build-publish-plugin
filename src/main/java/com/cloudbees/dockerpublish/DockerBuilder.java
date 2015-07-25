@@ -3,6 +3,7 @@ package com.cloudbees.dockerpublish;
 import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
@@ -309,14 +310,15 @@ public class DockerBuilder extends Builder {
         }
 
 		private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-			File context = new File(defined(getBuildContext()) ? getBuildContext() : ".");
+			FilePath context = defined(getBuildContext()) ?
+                new FilePath(new File(getBuildContext())) : build.getWorkspace();
 			Iterator<String> i = getNameAndTag().iterator();
 			Result lastResult = new Result();
 			if (i.hasNext()) {
 				lastResult = executeCmd("docker build -t " + i.next()
 					+ ((isNoCache()) ? " --no-cache=true " : "") + " "
 					+ ((isForcePull()) ? " --pull=true " : "") + " "
-					+ (defined(getDockerfilePath()) ? " --file=" + new File(context, getDockerfilePath()) : "") + " "
+					+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
 					+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
@@ -333,7 +335,7 @@ public class DockerBuilder extends Builder {
 					lastResult = executeCmd("docker build -t " + i.next()
 						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
 						+ ((isForcePull()) ? " --pull=true " : "") + " "
-						+ (defined(getDockerfilePath()) ? " --file=" + new File(context, getDockerfilePath()) : "") + " "
+						+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
 						+ context);
                                         processFingerprintsFromStdout(lastResult.stdout);
 				}

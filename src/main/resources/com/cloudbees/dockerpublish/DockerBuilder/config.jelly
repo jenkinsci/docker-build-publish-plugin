@@ -57,7 +57,7 @@
     </f:entry>
 
     <f:entry title="Dockerfile Path" field="dockerfilePath"
-      description="Path to the Dockerfile for this build. Can be used to specify a Dockerfile with a non-standard filename. Uses Docker client default if not specified.">
+      description="Path to the Dockerfile for this build. File must be relative to build context. Can be used to specify a Dockerfile with a non-standard filename. Uses Docker client default if not specified.">
       <f:textbox />
     </f:entry>
 

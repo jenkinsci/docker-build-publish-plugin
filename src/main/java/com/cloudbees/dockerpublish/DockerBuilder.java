@@ -5,6 +5,7 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -136,7 +137,7 @@ public class DockerBuilder extends Builder {
 
     @DataBoundSetter
     public void setBuildContext(String buildContext) {
-        this.buildContext = buildContext;
+        this.buildContext = Util.fixEmptyAndTrim(buildContext);
     }
 
     public String getDockerfilePath() {
@@ -145,7 +146,7 @@ public class DockerBuilder extends Builder {
 
     @DataBoundSetter
     public void setDockerfilePath(String dockerfilePath) {
-        this.dockerfilePath = dockerfilePath;
+        this.dockerfilePath = Util.fixEmptyAndTrim(dockerfilePath);
     }
 
     public boolean isSkipBuild() {

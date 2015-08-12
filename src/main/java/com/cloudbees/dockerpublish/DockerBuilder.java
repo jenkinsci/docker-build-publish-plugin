@@ -380,21 +380,22 @@ public class DockerBuilder extends Builder {
             OutputStream stderr = logStdErr ? 
                     new TeeOutputStream(listener.getLogger(), baosStdErr) : baosStdErr;
 
-            // get Docker registry credentials
-            KeyMaterial registryKey = getRegistry().newKeyMaterialFactory(build).materialize();
-            // Docker server credentials. If server is null (right after upgrading) do not use credentials
-            KeyMaterial serverKey = server == null ? null : server.newKeyMaterialFactory(build).materialize();
+            
+            KeyMaterial dockerKeys = 
+                // Docker registry credentials
+                getRegistry().newKeyMaterialFactory(build)
+            .plus(
+                // Docker server credentials. If server is null (right after upgrading) do not use credentials
+                server == null ? null : server.newKeyMaterialFactory(build))
+            .materialize();
 
             logger.log(Level.FINER, "Executing: {0}", cmd);
 
             try {
                 EnvVars env = new EnvVars();
                 env.putAll(build.getEnvironment(listener));
-                env.putAll(registryKey.env());
-                if (serverKey != null) {
-                    env.putAll(serverKey.env());
-                }
-    
+                env.putAll(dockerKeys.env());
+                
                 boolean result = launcher.launch()
                         .envs(env)
                         .pwd(build.getWorkspace())
@@ -409,10 +410,7 @@ public class DockerBuilder extends Builder {
                 return new Result(result, stdOutStr, stdErrStr);
 
             } finally {
-                registryKey.close();
-                if (serverKey != null) {
-                    serverKey.close();
-                }
+                dockerKeys.close();
             }
         }
         

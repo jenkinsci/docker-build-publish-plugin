@@ -74,6 +74,7 @@ public class DockerBuilder extends Builder {
     private boolean createFingerprint = true;
     private boolean skipTagLatest;
     private String buildAdditionalArgs = "";
+    private boolean forceTag = true;
 
     @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
@@ -216,6 +217,15 @@ public class DockerBuilder extends Builder {
         this.skipTagLatest = skipTagLatest;
     }
 
+    public boolean isForceTag() {
+        return forceTag;
+    }
+
+    @DataBoundSetter
+    public void setForceTag(boolean forceTag) {
+        this.forceTag = forceTag;
+    }
+
     /**
      * Fully qualified repository/image name with the registry url in front
      * @return ie. docker.acme.com/jdoe/busybox
@@ -322,7 +332,9 @@ public class DockerBuilder extends Builder {
             } else {
                 for (ImageTag imageTag : getImageTags()) {
                     result.add(
-                            "docker tag " + (imageTag.isLatest() ? "--force=true " : "") + getRepo() + " " + imageTag);
+                            "docker tag "
+                            + (imageTag.isLatest() || isForceTag() ? "--force=true " : "")
+                            + getRepo() + " " + imageTag);
                 }
             }
             return executeCmd(result);
@@ -345,7 +357,9 @@ public class DockerBuilder extends Builder {
             if (image != null) {
                 // we know the image name so apply the tags directly
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
+                    lastResult = executeCmd("docker tag "
+                            + (isForceTag() ? "--force=true " : "")
+                            + image + " " + i.next());
                 }
                 processFingerprints(image);
             } else {

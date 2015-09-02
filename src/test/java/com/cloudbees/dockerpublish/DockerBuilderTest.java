@@ -60,9 +60,20 @@ public class DockerBuilderTest {
 
     @Test
     public void testGetImageBuiltFromStdout() throws Exception {
-        URL url = Resources.getResource("docker-build-stdout.txt");
-        String image = DockerBuilder.getImageBuiltFromStdout(Resources.toString(url, Charsets.UTF_8));
+        URL url;
+        String image;
+
+        url = Resources.getResource("docker-build-stdout-1.txt");
+        image = DockerBuilder.getImageBuiltFromStdout(Resources.toString(url, Charsets.UTF_8));
         assertEquals("5b4f9edeb8d4", image);
+
+        url = Resources.getResource("docker-build-stdout-2.txt");
+        image = DockerBuilder.getImageBuiltFromStdout(Resources.toString(url, Charsets.UTF_8));
+        assertEquals("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", image);
+
+        url = Resources.getResource("docker-build-stdout-3.txt");
+        image = DockerBuilder.getImageBuiltFromStdout(Resources.toString(url, Charsets.UTF_8));
+        assertEquals("cd2a98e19492", image);
     }
 
 }

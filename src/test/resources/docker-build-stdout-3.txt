@@ -1,0 +1,37 @@
+Sending build context to Docker daemon 20.48 kB
+Step 0 : FROM python:2.7
+ ---> 7a0ad2450c23
+Step 1 : RUN mkdir /code
+ ---> Using cache
+ ---> b0739d45941e
+Step 2 : COPY requirements.txt spider.py /code/
+ ---> f86d633efd4a
+Removing intermediate container e2670ea46a3b
+Step 3 : RUN pip install -r /code/requirements.txt
+ ---> Running in bb6cf8be75cd
+Collecting cssselect>=0.9 (from Scrapy==1.0.3->-r /code/requirements.txt (line 1))
+  Downloading cssselect-0.9.1.tar.gz
+Collecting lxml (from Scrapy==1.0.3->-r /code/requirements.txt (line 1))
+  Downloading lxml-3.4.4.tar.gz (3.5MB)
+Collecting Twisted>=10.0.0 (from Scrapy==1.0.3->-r /code/requirements.txt (line 1))
+  Downloading Twisted-15.3.0.tar.bz2 (4.4MB)
+Building wheels for collected packages: cssselect, lxml, Twisted
+  Running setup.py bdist_wheel for cssselect
+  Stored in directory: /root/.cache/pip/wheels/c6/0e/79/ae69bf7b31029e0f0bc5b8306547f94ec3926b7dbb8452b5ea
+  Running setup.py bdist_wheel for lxml
+  Stored in directory: /root/.cache/pip/wheels/62/29/26/11383932dbed36e9fe68552fc755a96cfc6fa5833d948620da
+  Running setup.py bdist_wheel for Twisted
+  Stored in directory: /root/.cache/pip/wheels/f8/04/ea/daa5626a6807d7b4b5717649e2de2b70c8182fc61b7c9ca21d
+Successfully built cssselect lxml Twisted
+Installing collected packages: cssselect, lxml, Twisted
+Successfully installed Twisted-15.3.0 cssselect-0.9.1 lxml-3.4.4
+ ---> 9cc859624a2a
+Removing intermediate container bb6cf8be75cd
+Step 4 : COPY scrape.sh /code/
+ ---> c207085cf588
+Removing intermediate container 9c6fdd2e3ebc
+Step 5 : CMD /code/scrape.sh
+ ---> Running in cf274a28ba95
+ ---> cd2a98e19492
+Removing intermediate container cf274a28ba95
+Successfully built cd2a98e19492

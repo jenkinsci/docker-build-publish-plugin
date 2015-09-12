@@ -52,7 +52,7 @@ public class DockerBuilder extends Builder {
 
     private static final Logger logger = Logger.getLogger(DockerBuilder.class.getName());
 
-    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]+)");
+    private static final Pattern IMAGE_BUILT_PATTERN = Pattern.compile("Successfully built ([0-9a-f]{12,})");
 
     private DockerServerEndpoint server;
     private DockerRegistryEndpoint registry;
@@ -230,7 +230,11 @@ public class DockerBuilder extends Builder {
     @CheckForNull
     static String getImageBuiltFromStdout(CharSequence stdout) {
         Matcher m = IMAGE_BUILT_PATTERN.matcher(stdout);
-        return m.find() ? m.group(1) : null;
+        String lastmatch = null;
+        while (m.find()) {
+            lastmatch = m.group(1);
+        }
+        return lastmatch;
     }
     
     private class Perform {

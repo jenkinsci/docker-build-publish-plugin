@@ -51,8 +51,13 @@
         <f:checkbox />
     </f:entry>
 
-    <f:entry title="Directory Dockerfile is in" field="dockerfilePath"
-      description="The project root is where the Dockerfile is looked for by default - if you need another path, enter it here">
+    <f:entry title="Build Context" field="buildContext"
+      description="The project root path for the build. Defaults to the workspace root if not specified.">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry title="Dockerfile Path" field="dockerfilePath"
+      description="Path to the Dockerfile for this build. File must be relative to build context. Can be used to specify a Dockerfile with a non-standard filename. Uses Docker client default if not specified.">
       <f:textbox />
     </f:entry>
 

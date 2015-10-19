@@ -4,7 +4,9 @@ import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -13,6 +15,7 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
@@ -59,6 +62,8 @@ public class DockerBuilder extends Builder {
     private String repoName;
     private boolean noCache;
     private boolean forcePull;
+    @CheckForNull
+    private String buildContext;
     @CheckForNull
     private String dockerfilePath;
     private boolean skipBuild;
@@ -129,13 +134,22 @@ public class DockerBuilder extends Builder {
         this.forcePull = forcePull;
     }
 
+    public String getBuildContext() {
+        return buildContext;
+    }
+
+    @DataBoundSetter
+    public void setBuildContext(String buildContext) {
+        this.buildContext = Util.fixEmptyAndTrim(buildContext);
+    }
+
     public String getDockerfilePath() {
         return dockerfilePath;
     }
 
     @DataBoundSetter
     public void setDockerfilePath(String dockerfilePath) {
-        this.dockerfilePath = dockerfilePath;
+        this.dockerfilePath = Util.fixEmptyAndTrim(dockerfilePath);
     }
 
     public boolean isSkipBuild() {
@@ -302,17 +316,18 @@ public class DockerBuilder extends Builder {
             }
             return executeCmd(result);
         }
-        
+
 		private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-			String context = defined(getDockerfilePath()) ?
-					getDockerfilePath() : ".";
+			FilePath context = defined(getBuildContext()) ?
+                new FilePath(new File(getBuildContext())) : build.getWorkspace();
 			Iterator<String> i = getNameAndTag().iterator();
 			Result lastResult = new Result();
 			if (i.hasNext()) {
 				lastResult = executeCmd("docker build -t " + i.next()
-						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
-						+ ((isForcePull()) ? " --pull=true " : "") + " "
-						+ context);
+					+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+					+ ((isForcePull()) ? " --pull=true " : "") + " "
+					+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
+					+ context);
 			}
 			// get the image to save rebuilding it to apply the other tags
 			String image = getImageBuiltFromStdout(lastResult.stdout);
@@ -320,15 +335,16 @@ public class DockerBuilder extends Builder {
 				// we know the image name so apply the tags directly
 				while (lastResult.result && i.hasNext()) {
 					lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
-				}          
+				}
                                 processFingerprints(image);
 			} else {
 				// we don't know the image name so rebuild the image for each tag
 				while (lastResult.result && i.hasNext()) {
 					lastResult = executeCmd("docker build -t " + i.next()
-							+ ((isNoCache()) ? " --no-cache=true " : "") + " "
-							+ ((isForcePull()) ? " --pull=true " : "") + " "
-							+ context);
+						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
+						+ ((isForcePull()) ? " --pull=true " : "") + " "
+						+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
+						+ context);
                                         processFingerprintsFromStdout(lastResult.stdout);
 				}
 			}

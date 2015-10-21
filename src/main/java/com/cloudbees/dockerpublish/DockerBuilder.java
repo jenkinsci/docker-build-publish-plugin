@@ -70,14 +70,16 @@ public class DockerBuilder extends Builder {
     private boolean skipDecorate;
     @CheckForNull
     private String repoTag;
+    private String retryBuild;
     private boolean skipPush = true;
     private boolean createFingerprint = true;
     private boolean skipTagLatest;
 
     @Deprecated
-    public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
+    public DockerBuilder(String repoName, String repoTag, String retryBuild, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
         this(repoName);
         this.repoTag = repoTag;
+        this.retryBuild = retryBuild;
         this.skipPush = skipPush;
         this.noCache = noCache;
         this.forcePull = forcePull;
@@ -177,6 +179,15 @@ public class DockerBuilder extends Builder {
     @DataBoundSetter
     public void setRepoTag(String repoTag) {
         this.repoTag = repoTag;
+    }
+
+    public String getRetryBuild() {
+        return retryBuild;
+    }
+
+    @DataBoundSetter
+    public void setRetryBuild(String retryBuild) {
+        this.retryBuild = retryBuild;
     }
 
     public boolean isSkipPush() {
@@ -354,9 +365,27 @@ public class DockerBuilder extends Builder {
         private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
         	List<String> result = new ArrayList<String>();
         	for (String tag: getNameAndTag()) {
+
         		result.add("docker push " + tag);
         	}
-        	return executeCmd(result);
+            boolean lastResult = executeCmd(result);
+            int retryNo=parse(getRetryBuild());
+        	while (!lastResult && retryNo>0)
+            {
+                logger.log(Level.INFO, "Retrying push command : {0} attempt", retryNo);
+                lastResult = executeCmd(result);
+                retryNo--;
+            }
+            return lastResult;
+        }
+
+        private  int parse(String p) {
+            if(p==null)     return 0;
+            try {
+                return Integer.parseInt(p);
+            } catch (NumberFormatException e) {
+                return -1;
+            }
         }
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {

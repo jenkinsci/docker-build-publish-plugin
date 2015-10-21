@@ -12,8 +12,15 @@
     <f:textbox />
   </f:entry>
 
+  <f:entry title="${%Retry for Docker Push}"
+        description="${%if not empty, Docker Push retry will run to this number of times}" field="retryBuild">
+        <f:number clazz="positive-number" min="1" step="1" />
+   </f:entry>
+
   <f:property field="server"/>
   <f:property field="registry"/>
+
+
 
   <f:advanced>
 

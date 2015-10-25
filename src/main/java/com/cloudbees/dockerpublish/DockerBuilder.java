@@ -217,28 +217,28 @@ public class DockerBuilder extends Builder {
 
 
     private boolean defined(String s) {
-    	return s != null && !s.trim().isEmpty();
+        return s != null && !s.trim().isEmpty();
     }
     
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)  {
-    	return new Perform(build, launcher, listener).exec();
+        return new Perform(build, launcher, listener).exec();
     }
     
     private static class Result {
-    	final boolean result;
-    	final @Nonnull String stdout;
+        final boolean result;
+        final @Nonnull String stdout;
         final @Nonnull String stderr;
-    	
-    	private Result() {
-    		this(true, "", "");
-    	}
-    	
-    	private Result(boolean result, @CheckForNull String stdout, @CheckForNull String stderr) {
-    		this.result = result;
-    		this.stdout = hudson.Util.fixNull(stdout);
+
+        private Result() {
+            this(true, "", "");
+        }
+
+        private Result(boolean result, @CheckForNull String stdout, @CheckForNull String stderr) {
+            this.result = result;
+            this.stdout = hudson.Util.fixNull(stdout);
                 this.stderr = hudson.Util.fixNull(stderr);
-    	}
+        }
     }
 
     @CheckForNull
@@ -252,22 +252,22 @@ public class DockerBuilder extends Builder {
     }
     
     private class Perform {
-    	private final AbstractBuild build;
-    	private final Launcher launcher;
-    	private final BuildListener listener;
-    	
-    	private Perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-    		this.build = build;
-    		this.launcher = launcher;
-    		this.listener = listener;
-    	}
-    	
-    	private boolean exec() {
-    		try {
+        private final AbstractBuild build;
+        private final Launcher launcher;
+        private final BuildListener listener;
+
+        private Perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+            this.build = build;
+            this.launcher = launcher;
+            this.listener = listener;
+        }
+
+        private boolean exec() {
+            try {
                 if (!isSkipDecorate()) {
-                	for (String tag: getNameAndTag()) {
-                		build.setDisplayName(build.getDisplayName() + " " + tag);
-                	}
+                    for (String tag: getNameAndTag()) {
+                        build.setDisplayName(build.getDisplayName() + " " + tag);
+                    }
                 }
 
                 return
@@ -281,92 +281,92 @@ public class DockerBuilder extends Builder {
             } catch (MacroEvaluationException e) {
                 return recordException(e);
             }
-    	}
-    	
-    	private String expandAll(String s) throws MacroEvaluationException, IOException, InterruptedException {
-    		return TokenMacro.expandAll(build, listener, s);
-    	}
-    	
+        }
+
+        private String expandAll(String s) throws MacroEvaluationException, IOException, InterruptedException {
+            return TokenMacro.expandAll(build, listener, s);
+        }
+
         /**
          * This tag is what is used to build, tag and push the registry.
          */
         private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-        	List<String> tags = new ArrayList<String>();
+            List<String> tags = new ArrayList<String>();
             if (!defined(getRepoTag())) {
                 tags.add(expandAll(getRepo()));
             } else {
-            	for (String rt: expandAll(getRepoTag()).trim().split(",")) {
+                for (String rt: expandAll(getRepoTag()).trim().split(",")) {
                     tags.add(expandAll(getRepo() + ":" + rt));
-            	}
-            	if (!isSkipTagLatest()) {
+                }
+                if (!isSkipTagLatest()) {
                     tags.add(expandAll(getRepo() + ":latest"));
-            	}
+                }
             }
-        	return tags;
+            return tags;
         }
         
         private boolean maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
-        	List<String> result = new ArrayList<String>();
+            List<String> result = new ArrayList<String>();
             if (!defined(getRepoTag())) {
                 result.add("echo 'Nothing to build or tag'");
             } else {
-            	for (String tag : getNameAndTag()) {
+                for (String tag : getNameAndTag()) {
                     result.add("docker tag " + getRepo() + " " + tag);
-            	}
+                }
             }
             return executeCmd(result);
         }
 
-		private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-			FilePath context = defined(getBuildContext()) ?
+        private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
+            FilePath context = defined(getBuildContext()) ?
                 new FilePath(new File(getBuildContext())) : build.getWorkspace();
-			Iterator<String> i = getNameAndTag().iterator();
-			Result lastResult = new Result();
-			if (i.hasNext()) {
-				lastResult = executeCmd("docker build -t " + i.next()
-					+ ((isNoCache()) ? " --no-cache=true " : "") + " "
-					+ ((isForcePull()) ? " --pull=true " : "") + " "
-					+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-					+ context);
-			}
-			// get the image to save rebuilding it to apply the other tags
-			String image = getImageBuiltFromStdout(lastResult.stdout);
-			if (image != null) {
-				// we know the image name so apply the tags directly
-				while (lastResult.result && i.hasNext()) {
-					lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
-				}
-                                processFingerprints(image);
-			} else {
-				// we don't know the image name so rebuild the image for each tag
-				while (lastResult.result && i.hasNext()) {
-					lastResult = executeCmd("docker build -t " + i.next()
-						+ ((isNoCache()) ? " --no-cache=true " : "") + " "
-						+ ((isForcePull()) ? " --pull=true " : "") + " "
-						+ (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-						+ context);
-                                        processFingerprintsFromStdout(lastResult.stdout);
-				}
-			}
-			return lastResult.result;
-		}
+            Iterator<String> i = getNameAndTag().iterator();
+            Result lastResult = new Result();
+            if (i.hasNext()) {
+                lastResult = executeCmd("docker build -t " + i.next()
+                    + ((isNoCache()) ? " --no-cache=true " : "") + " "
+                    + ((isForcePull()) ? " --pull=true " : "") + " "
+                    + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
+                    + context);
+            }
+            // get the image to save rebuilding it to apply the other tags
+            String image = getImageBuiltFromStdout(lastResult.stdout);
+            if (image != null) {
+                // we know the image name so apply the tags directly
+                while (lastResult.result && i.hasNext()) {
+                    lastResult = executeCmd("docker tag --force=true " + image + " " + i.next());
+                }
+                processFingerprints(image);
+            } else {
+                // we don't know the image name so rebuild the image for each tag
+                while (lastResult.result && i.hasNext()) {
+                    lastResult = executeCmd("docker build -t " + i.next()
+                        + ((isNoCache()) ? " --no-cache=true " : "") + " "
+                        + ((isForcePull()) ? " --pull=true " : "") + " "
+                        + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
+                        + context);
+                    processFingerprintsFromStdout(lastResult.stdout);
+                }
+            }
+            return lastResult.result;
+        }
 
         private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
-        	List<String> result = new ArrayList<String>();
-        	for (String tag: getNameAndTag()) {
-        		result.add("docker push " + tag);
-        	}
-        	return executeCmd(result);
+            List<String> result = new ArrayList<String>();
+            for (String tag: getNameAndTag()) {
+                result.add("docker push " + tag);
+            }
+            return executeCmd(result);
         }
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
-        	Iterator<String> i = cmds.iterator();
-        	Result lastResult = new Result();
-        	// if a command fails, do not continue
-        	while (lastResult.result && i.hasNext()) {
-        		lastResult = executeCmd(i.next());
-        	}
-        	return lastResult.result;
+            Iterator<String> i = cmds.iterator();
+            Result lastResult = new Result();
+            // if a command fails, do not continue
+            while (lastResult.result && i.hasNext()) {
+                lastResult = executeCmd(i.next());
+            }
+            return lastResult.result;
         }
 
         /**
@@ -473,7 +473,7 @@ public class DockerBuilder extends Builder {
             e.printStackTrace(listener.getLogger());
             return false;
         }
-    	
+
     }
 
     private Object readResolve() throws ObjectStreamException {

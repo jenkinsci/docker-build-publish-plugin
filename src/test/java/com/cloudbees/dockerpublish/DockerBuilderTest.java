@@ -24,9 +24,15 @@
 package com.cloudbees.dockerpublish;
 
 import static org.junit.Assert.*;
+
+import hudson.model.FreeStyleProject;
 import hudson.model.Items;
 
 import java.net.URL;
+
+import org.jenkinsci.plugins.docker.commons.credentials.DockerServerEndpoint;
+import org.junit.Rule;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
 import org.junit.Test;
@@ -38,6 +44,9 @@ import com.google.common.io.Resources;
  * @author Carlos Sanchez <carlos@apache.org>
  */
 public class DockerBuilderTest {
+
+    @Rule
+    public JenkinsRule jenkins = new JenkinsRule();
 
     @Test
     public void testReadResolve() throws Exception {
@@ -76,4 +85,58 @@ public class DockerBuilderTest {
         assertEquals("cd2a98e19492", image);
     }
 
+    @Test
+    public void testRoundTrip() throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject();
+
+        DockerBuilder before = new DockerBuilder("example/test");
+
+        before.setBuildContext("./directory`");
+        before.setCreateFingerprint(true);
+        before.setDockerfilePath("Dockerfile.custom");
+        before.setForcePull(true);
+        before.setNoCache(true);
+        before.setRegistry(new DockerRegistryEndpoint(null,null));
+        before.setRepoTag("12345");
+        before.setServer(new DockerServerEndpoint(null, null));
+        before.setSkipBuild(true);
+        before.setSkipDecorate(true);
+        before.setSkipPush(true);
+        before.setSkipTagLatest(true);
+
+        project.getBuildersList().add(before);
+
+        jenkins.submit(
+            jenkins.createWebClient()
+                .getPage(project, "configure")
+                .getFormByName("config"));
+
+        DockerBuilder after = project.getBuildersList().get(DockerBuilder.class);
+
+        jenkins.assertEqualBeans(before, after, "repoName,buildContext,createFingerprint," +
+            "dockerfilePath,forcePull,noCache,registry,repoTag,server,skipBuild," +
+            "skipDecorate,skipPush,skipTagLatest");
+    }
+
+    @Test
+    public void testOptionalFieldsAreNulled() throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject();
+
+        DockerBuilder before = new DockerBuilder("example/test");
+
+        before.setBuildContext("");
+        before.setDockerfilePath("");
+
+        project.getBuildersList().add(before);
+
+        jenkins.submit(
+            jenkins.createWebClient()
+                .getPage(project, "configure")
+                .getFormByName("config"));
+
+        DockerBuilder after = project.getBuildersList().get(DockerBuilder.class);
+
+        assertEquals(null, after.getBuildContext());
+        assertEquals(null,after.getDockerfilePath());
+    }
 }

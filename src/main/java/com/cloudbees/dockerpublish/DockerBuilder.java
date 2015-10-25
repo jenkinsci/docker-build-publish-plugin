@@ -272,7 +272,7 @@ public class DockerBuilder extends Builder {
 
                 return
                     (isSkipBuild() ? maybeTagOnly() : buildAndTag()) &&
-                    (isSkipPush() ? true : dockerPushCommand());
+                    (isSkipPush() || dockerPushCommand());
 
             } catch (IOException e) {
                 return recordException(e);

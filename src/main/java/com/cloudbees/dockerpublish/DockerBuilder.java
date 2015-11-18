@@ -265,8 +265,8 @@ public class DockerBuilder extends Builder {
         private boolean exec() {
             try {
                 if (!isSkipDecorate()) {
-                    for (String tag: getNameAndTag()) {
-                        build.setDisplayName(build.getDisplayName() + " " + tag);
+                    for (ImageTag imageTag : getImageTags()) {
+                        build.setDisplayName(build.getDisplayName() + " " + imageTag);
                     }
                 }
 
@@ -290,16 +290,16 @@ public class DockerBuilder extends Builder {
         /**
          * This tag is what is used to build, tag and push the registry.
          */
-        private List<String> getNameAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            List<String> tags = new ArrayList<String>();
+        private List<ImageTag> getImageTags() throws MacroEvaluationException, IOException, InterruptedException {
+            List<ImageTag> tags = new ArrayList<ImageTag>();
             if (!defined(getRepoTag())) {
-                tags.add(expandAll(getRepo()));
+                tags.add(new ImageTag(expandAll(getRepo())));
             } else {
-                for (String rt: expandAll(getRepoTag()).trim().split(",")) {
-                    tags.add(expandAll(getRepo() + ":" + rt));
+                for (String rt : expandAll(getRepoTag()).trim().split(",")) {
+                    tags.add(new ImageTag(expandAll(getRepo()), expandAll(rt)));
                 }
                 if (!isSkipTagLatest()) {
-                    tags.add(expandAll(getRepo() + ":latest"));
+                    tags.add(new ImageTag(expandAll(getRepo()), "latest"));
                 }
             }
             return tags;
@@ -310,17 +310,18 @@ public class DockerBuilder extends Builder {
             if (!defined(getRepoTag())) {
                 result.add("echo 'Nothing to build or tag'");
             } else {
-                for (String tag : getNameAndTag()) {
-                    result.add("docker tag " + getRepo() + " " + tag);
+                for (ImageTag imageTag : getImageTags()) {
+                    result.add(
+                            "docker tag " + (imageTag.isLatest() ? "--force=true " : "") + getRepo() + " " + imageTag);
                 }
             }
             return executeCmd(result);
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            FilePath context = defined(getBuildContext()) ?
-                new FilePath(new File(getBuildContext())) : build.getWorkspace();
-            Iterator<String> i = getNameAndTag().iterator();
+            FilePath context = defined(getBuildContext()) ? new FilePath(new File(getBuildContext()))
+                    : build.getWorkspace();
+            Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {
                 lastResult = executeCmd("docker build -t " + i.next()
@@ -353,8 +354,8 @@ public class DockerBuilder extends Builder {
 
         private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
             List<String> result = new ArrayList<String>();
-            for (String tag: getNameAndTag()) {
-                result.add("docker push " + tag);
+            for (ImageTag imageTag : getImageTags()) {
+                result.add("docker push " + imageTag.toString());
             }
             return executeCmd(result);
         }

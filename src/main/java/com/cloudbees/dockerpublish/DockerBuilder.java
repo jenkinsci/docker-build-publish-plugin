@@ -328,7 +328,7 @@ public class DockerBuilder extends Builder {
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                    + context);
+                    + "'" + context + "'");
             }
             // get the image to save rebuilding it to apply the other tags
             String image = getImageBuiltFromStdout(lastResult.stdout);

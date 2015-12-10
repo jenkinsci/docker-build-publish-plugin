@@ -73,6 +73,7 @@ public class DockerBuilder extends Builder {
     private boolean skipPush = true;
     private boolean createFingerprint = true;
     private boolean skipTagLatest;
+    private String buildAdditionalArgs = "";
 
     @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
@@ -150,6 +151,15 @@ public class DockerBuilder extends Builder {
     @DataBoundSetter
     public void setDockerfilePath(String dockerfilePath) {
         this.dockerfilePath = Util.fixEmptyAndTrim(dockerfilePath);
+    }
+    
+    public String getBuildAdditionalArgs() {
+        return buildAdditionalArgs;
+    }
+
+    @DataBoundSetter
+    public void setBuildAdditionalArgs(String buildAdditionalArgs) {
+        this.buildAdditionalArgs = buildAdditionalArgs;
     }
 
     public boolean isSkipBuild() {
@@ -324,7 +334,7 @@ public class DockerBuilder extends Builder {
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {
-                lastResult = executeCmd("docker build -t " + i.next()
+                lastResult = executeCmd("docker build " + getBuildAdditionalArgs() + " -t " + i.next()
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
@@ -341,7 +351,7 @@ public class DockerBuilder extends Builder {
             } else {
                 // we don't know the image name so rebuild the image for each tag
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker build -t " + i.next()
+                    lastResult = executeCmd("docker build " + getBuildAdditionalArgs() +" -t " + i.next()
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "

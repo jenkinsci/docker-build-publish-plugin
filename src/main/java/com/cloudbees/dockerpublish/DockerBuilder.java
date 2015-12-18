@@ -355,7 +355,7 @@ public class DockerBuilder extends Builder {
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                        + context);
+                        + "'" + context + "'");
                     processFingerprintsFromStdout(lastResult.stdout);
                 }
             }

@@ -1,5 +1,7 @@
 # Docker registry build plugin for Jenkins
 
+[![Build Status](https://jenkins.ci.cloudbees.com/job/plugins/job/docker-build-publish-plugin/badge/icon)](https://jenkins.ci.cloudbees.com/job/plugins/job/docker-build-publish-plugin/)
+
 If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck! This is an early version - tweet @michaelneale if you have questions.
 
 Features:

@@ -17,7 +17,7 @@
   <description>
     This plugin provides the ability to build projects with a Dockerfile, and publish the resultant tagged image (repo) to a Docker registry.
   </description>
-  <url>https://github.com/jenkinsci/docker-build-publish-plugin/blob/master/README.md</url>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+Docker+Build+and+Publish+plugin</url>
   <licenses>
     <license>
       <name>The MIT license</name>

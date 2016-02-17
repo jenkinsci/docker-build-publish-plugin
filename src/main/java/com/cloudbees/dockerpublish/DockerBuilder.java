@@ -246,18 +246,37 @@ public class DockerBuilder extends Builder {
     }
     
     private static class Result {
-        final boolean result;
+        /**
+         * <p>
+         * The status code of the command returned from the command line. Usually 0 means success while all other codes define some kind of error.
+         * </p>
+         */
+        final int commandStatusCode;
         final @Nonnull String stdout;
         final @Nonnull String stderr;
 
         private Result() {
-            this(true, "", "");
+            this(0, "", "");
         }
 
-        private Result(boolean result, @CheckForNull String stdout, @CheckForNull String stderr) {
-            this.result = result;
+        /**
+         * @param commandStatusCode The status code of the command returned from the command line. Usually 0 means success while all other codes define some kind of error.
+         */
+        private Result(final int commandStatusCode, @CheckForNull final String stdout, @CheckForNull final String stderr) {
+            this.commandStatusCode = commandStatusCode;
             this.stdout = hudson.Util.fixNull(stdout);
                 this.stderr = hudson.Util.fixNull(stderr);
+        }
+        
+        public boolean wasSuccessful() {
+            return commandStatusCode==0;
+        }
+
+        /**
+         * @return The status code of the command returned from the command line. Usually 0 means success while all other codes define some kind of error.
+         */
+        public int getStatusCode() {
+            return commandStatusCode;
         }
     }
 
@@ -337,7 +356,7 @@ public class DockerBuilder extends Builder {
                             + getRepo() + " " + imageTag);
                 }
             }
-            return executeCmd(result);
+            return executeCmd(result).wasSuccessful();
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
@@ -356,7 +375,7 @@ public class DockerBuilder extends Builder {
             String image = getImageBuiltFromStdout(lastResult.stdout);
             if (image != null) {
                 // we know the image name so apply the tags directly
-                while (lastResult.result && i.hasNext()) {
+                while (lastResult.wasSuccessful() && i.hasNext()) {
                     lastResult = executeCmd("docker tag "
                             + (isForceTag() ? "--force=true " : "")
                             + image + " " + i.next());
@@ -364,7 +383,7 @@ public class DockerBuilder extends Builder {
                 processFingerprints(image);
             } else {
                 // we don't know the image name so rebuild the image for each tag
-                while (lastResult.result && i.hasNext()) {
+                while (lastResult.wasSuccessful() && i.hasNext()) {
                     lastResult = executeCmd("docker build " + getBuildAdditionalArgs() +" -t " + i.next()
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
@@ -373,7 +392,7 @@ public class DockerBuilder extends Builder {
                     processFingerprintsFromStdout(lastResult.stdout);
                 }
             }
-            return lastResult.result;
+            return lastResult.wasSuccessful();
         }
 
         private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
@@ -381,17 +400,19 @@ public class DockerBuilder extends Builder {
             for (ImageTag imageTag : getImageTags()) {
                 result.add("docker push " + imageTag.toString());
             }
-            return executeCmd(result);
+            // The docker push command return 1 if the image was not updated because it did not change. This case needs to be handled gracefully.
+            Result commandResult = executeCmd(result);
+            return commandResult.wasSuccessful() || commandResult.getStatusCode()==1;
         }
 
-        private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
+        private Result executeCmd(List<String> cmds) throws IOException, InterruptedException {
             Iterator<String> i = cmds.iterator();
             Result lastResult = new Result();
             // if a command fails, do not continue
-            while (lastResult.result && i.hasNext()) {
+            while (lastResult.wasSuccessful() && i.hasNext()) {
                 lastResult = executeCmd(i.next());
             }
-            return lastResult.result;
+            return lastResult;
         }
 
         /**
@@ -440,18 +461,18 @@ public class DockerBuilder extends Builder {
                     env.putAll(serverKey.env());
                 }
     
-                boolean result = launcher.launch()
+                int statusCode = launcher.launch()
                         .envs(env)
                         .pwd(build.getWorkspace())
                         .stdout(stdout)
                         .stderr(stderr)
                         .cmdAsSingleString(cmd)
-                        .start().join() == 0;
+                        .start().join();
 
                 // capture the stdout so it can be parsed later on
                 final String stdOutStr = DockerCLIHelper.getConsoleOutput(baosStdOut, logger);
                 final String stdErrStr = DockerCLIHelper.getConsoleOutput(baosStdErr, logger);
-                return new Result(result, stdOutStr, stdErrStr);
+                return new Result(statusCode, stdOutStr, stdErrStr);
 
             } finally {
                 registryKey.close();
@@ -480,7 +501,7 @@ public class DockerBuilder extends Builder {
             
             // Retrieve full image ID using another call
             final Result response = executeCmd("docker inspect " + image, false, true);
-            if (!response.result) {
+            if (!response.wasSuccessful()) {
                 return; // Bad result, cannot do anything
             }
             final InspectImageResponse rsp = DockerCLIHelper.parseInspectImageResponse(response.stdout);

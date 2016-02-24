@@ -29,7 +29,7 @@ import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
 /**
  * Image names
  * 
- * @author Carlos Sanchez <carlos@apache.org>
+ * @author Carlos Sanchez carlos@apache.org
  *
  */
 public class ImageTag {

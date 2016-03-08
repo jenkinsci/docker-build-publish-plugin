@@ -524,6 +524,22 @@ public class DockerBuilder extends Builder {
      */
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+        @SuppressWarnings("unused")
+        private transient String userName;
+        @SuppressWarnings("unused")
+        private transient String password;
+        @SuppressWarnings("unused")
+        private transient String email;
+        @SuppressWarnings("unused")
+        private transient String registryUrl;
+
+        /**
+         * In order to load the persisted global configuration, you have to 
+         * call load() in the constructor.
+         */
+        public DescriptorImpl() {
+            load();
+        }
 
         // Using docker-commons now, methods left for backwards compatibility
 
@@ -544,23 +560,6 @@ public class DockerBuilder extends Builder {
         @SuppressWarnings("unused")
         @Restricted(NoExternalUse.class)
         public String getRegistryUrl() { return registryUrl; }
-
-        @SuppressWarnings("unused")
-        private transient String userName;
-        @SuppressWarnings("unused")
-        private transient String password;
-        @SuppressWarnings("unused")
-        private transient String email;
-        @SuppressWarnings("unused")
-        private transient String registryUrl;
-
-        /**
-         * In order to load the persisted global configuration, you have to 
-         * call load() in the constructor.
-         */
-        public DescriptorImpl() {
-            load();
-        }
 
         /**
          * Performs on-the-fly validation of the form field 'repoName'.

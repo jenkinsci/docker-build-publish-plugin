@@ -482,12 +482,14 @@ public class DockerBuilder extends Builder {
                 return; // Bad result, cannot do anything
             }
             final InspectImageResponse rsp = DockerCLIHelper.parseInspectImageResponse(response.stdout);
+            logger.log(Level.FINEST, "Inspect image {0}: {1}", new Object[] { image, response.stdout });
             if (rsp == null) {
                 return; // Cannot process the data
             }
             
             //  Create or retrieve the fingerprint
-            DockerFingerprints.addFromFacet(rsp.getParent(), rsp.getId(), build);
+            // parent can be ""
+            DockerFingerprints.addFromFacet(Util.fixEmpty(rsp.getParent()), rsp.getId(), build);
             
         }
 

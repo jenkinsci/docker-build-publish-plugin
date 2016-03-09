@@ -155,7 +155,7 @@ public class DockerBuilder extends Builder {
     }
     
     public String getBuildAdditionalArgs() {
-        return buildAdditionalArgs;
+        return buildAdditionalArgs == null ? "" : buildAdditionalArgs;
     }
 
     @DataBoundSetter

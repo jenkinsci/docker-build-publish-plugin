@@ -341,7 +341,7 @@ public class DockerBuilder extends Builder {
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            FilePath context = defined(getBuildContext()) ? new FilePath(new File(getBuildContext()))
+            FilePath context = defined(expandAll(getBuildContext())) ? new FilePath(new File(expandAll(getBuildContext())))
                     : build.getWorkspace();
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
@@ -350,7 +350,7 @@ public class DockerBuilder extends Builder {
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                    + "'" + expandAll(context) + "'");
+                    + "'" + context + "'");
             }
             // get the image to save rebuilding it to apply the other tags
             String image = getImageBuiltFromStdout(lastResult.stdout);
@@ -369,7 +369,7 @@ public class DockerBuilder extends Builder {
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                        + "'" + expandAll(context) + "'");
+                        + "'" + context + "'");
                     processFingerprintsFromStdout(lastResult.stdout);
                 }
             }

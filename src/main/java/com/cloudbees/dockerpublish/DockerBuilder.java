@@ -346,11 +346,11 @@ public class DockerBuilder extends Builder {
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {
-                lastResult = executeCmd("docker build " + getBuildAdditionalArgs() + " -t " + i.next()
+                lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) + " -t " + i.next()
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                    + "'" + context + "'");
+                    + "'" + expandAll(context) + "'");
             }
             // get the image to save rebuilding it to apply the other tags
             String image = getImageBuiltFromStdout(lastResult.stdout);
@@ -365,11 +365,11 @@ public class DockerBuilder extends Builder {
             } else {
                 // we don't know the image name so rebuild the image for each tag
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker build " + getBuildAdditionalArgs() +" -t " + i.next()
+                    lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) +" -t " + i.next()
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
-                        + "'" + context + "'");
+                        + "'" + expandAll(context) + "'");
                     processFingerprintsFromStdout(lastResult.stdout);
                 }
             }

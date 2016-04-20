@@ -341,12 +341,12 @@ public class DockerBuilder extends Builder {
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            FilePath context = defined(getBuildContext()) ? new FilePath(new File(getBuildContext()))
+            FilePath context = defined(expandAll(getBuildContext())) ? new FilePath(new File(expandAll(getBuildContext())))
                     : build.getWorkspace();
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {
-                lastResult = executeCmd("docker build " + getBuildAdditionalArgs() + " -t " + i.next()
+                lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) + " -t " + i.next()
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
@@ -365,7 +365,7 @@ public class DockerBuilder extends Builder {
             } else {
                 // we don't know the image name so rebuild the image for each tag
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker build " + getBuildAdditionalArgs() +" -t " + i.next()
+                    lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) +" -t " + i.next()
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "

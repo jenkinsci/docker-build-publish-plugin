@@ -506,7 +506,7 @@ public class DockerBuilder extends Builder {
             }
             
             // Retrieve full image ID using another call
-            final Result response = executeCmd("docker inspect " + image, false, true);
+            final Result response = executeCmd("inspect " + image, false, true);
             if (!response.result) {
                 return; // Bad result, cannot do anything
             }

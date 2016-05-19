@@ -2,6 +2,7 @@ package com.cloudbees.dockerpublish;
 
 import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -12,6 +13,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import hudson.tools.ToolDescriptor;
+import hudson.tools.ToolInstallation;
 import hudson.util.FormValidation;
 
 import java.io.ByteArrayOutputStream;
@@ -36,6 +39,7 @@ import org.jenkinsci.plugins.docker.commons.credentials.KeyMaterial;
 import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
 import org.jenkinsci.plugins.docker.commons.credentials.DockerServerEndpoint;
 import org.jenkinsci.plugins.docker.commons.fingerprint.DockerFingerprints;
+import org.jenkinsci.plugins.docker.commons.tools.DockerTool;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.accmod.Restricted;
@@ -75,6 +79,9 @@ public class DockerBuilder extends Builder {
     private boolean skipTagLatest;
     private String buildAdditionalArgs = "";
     private boolean forceTag = true;
+    
+    @CheckForNull
+    private String dockerToolName;
 
     @Deprecated
     public DockerBuilder(String repoName, String repoTag, boolean skipPush, boolean noCache, boolean forcePull, boolean skipBuild, boolean skipDecorate, boolean skipTagLatest, String dockerfilePath) {
@@ -225,6 +232,15 @@ public class DockerBuilder extends Builder {
     public void setForceTag(boolean forceTag) {
         this.forceTag = forceTag;
     }
+    
+    public String getDockerToolName() {
+		return dockerToolName;
+	}
+    
+    @DataBoundSetter
+    public void setDockerToolName(String dockerToolName) {
+		this.dockerToolName = dockerToolName;
+	}
 
     /**
      * Fully qualified repository/image name with the registry url in front
@@ -332,7 +348,7 @@ public class DockerBuilder extends Builder {
             } else {
                 for (ImageTag imageTag : getImageTags()) {
                     result.add(
-                            "docker tag "
+                            "tag "
                             + (imageTag.isLatest() || isForceTag() ? "--force=true " : "")
                             + getRepo() + " " + imageTag);
                 }
@@ -346,7 +362,7 @@ public class DockerBuilder extends Builder {
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {
-                lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) + " -t " + i.next()
+                lastResult = executeCmd("build " + expandAll(getBuildAdditionalArgs()) + " -t " + i.next()
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
                     + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
@@ -365,7 +381,7 @@ public class DockerBuilder extends Builder {
             } else {
                 // we don't know the image name so rebuild the image for each tag
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker build " + expandAll(getBuildAdditionalArgs()) +" -t " + i.next()
+                    lastResult = executeCmd("build " + expandAll(getBuildAdditionalArgs()) +" -t " + i.next()
                         + ((isNoCache()) ? " --no-cache=true " : "") + " "
                         + ((isForcePull()) ? " --pull=true " : "") + " "
                         + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
@@ -379,7 +395,7 @@ public class DockerBuilder extends Builder {
         private boolean dockerPushCommand() throws InterruptedException, MacroEvaluationException, IOException {
             List<String> result = new ArrayList<String>();
             for (ImageTag imageTag : getImageTags()) {
-                result.add("docker push " + imageTag.toString());
+                result.add("push " + imageTag.toString());
             }
             return executeCmd(result);
         }
@@ -409,7 +425,7 @@ public class DockerBuilder extends Builder {
         
         /**
          * Runs Docker command using Docker CLI.
-         * @param cmd Command to be executed
+         * @param cmd Command to be executed (Docker command will be prefixed)
          * @param logStdOut If true, propagate STDOUT to the build log
          * @param logStdErr If true, propagate STDERR to the build log
          * @return Execution result
@@ -434,12 +450,25 @@ public class DockerBuilder extends Builder {
                 server == null ? null : server.newKeyMaterialFactory(build))
             .materialize();
 
+            EnvVars env = new EnvVars();
+            env.putAll(build.getEnvironment(listener));
+            env.putAll(dockerKeys.env());
+
+            String dockerCmd = "docker";
+            
+            if (getDockerToolName() != null) {
+	            try {
+	          		dockerCmd = DockerTool.getExecutable(getDockerToolName(), build.getBuiltOn(), listener, env);
+	            } catch (Exception e) {
+	            	logger.log(Level.WARNING, "Something failed", e);
+	            }
+            }
+            
+            cmd = dockerCmd + " " +cmd;
+            
             logger.log(Level.FINER, "Executing: {0}", cmd);
 
             try {
-                EnvVars env = new EnvVars();
-                env.putAll(build.getEnvironment(listener));
-                env.putAll(dockerKeys.env());
                 
                 boolean result = launcher.launch()
                         .envs(env)

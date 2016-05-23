@@ -341,8 +341,16 @@ public class DockerBuilder extends Builder {
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            FilePath context = defined(expandAll(getBuildContext())) ? new FilePath(new File(expandAll(getBuildContext())))
-                    : build.getWorkspace();
+            FilePath context;
+            if (defined(expandAll(getBuildContext()))) {
+                if (build.getBuiltOn() != null) {
+                    context = build.getBuiltOn().createPath(expandAll(getBuildContext()));
+                } else {
+                    context = new FilePath(new File(expandAll(getBuildContext())));
+                }
+            } else {
+                context = build.getWorkspace();
+            }
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {

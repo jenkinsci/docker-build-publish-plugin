@@ -8,6 +8,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.BuildListener;
+import hudson.model.Node;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
@@ -341,8 +342,18 @@ public class DockerBuilder extends Builder {
         }
 
         private boolean buildAndTag() throws MacroEvaluationException, IOException, InterruptedException {
-            FilePath context = defined(expandAll(getBuildContext())) ? new FilePath(new File(expandAll(getBuildContext())))
-                    : build.getWorkspace();
+            FilePath context;
+            if (defined(expandAll(getBuildContext()))) {
+            	Node builtOn = build.getBuiltOn();
+            	
+                if (builtOn != null) {
+                    context = builtOn.createPath(expandAll(getBuildContext()));
+                } else {
+                    context = new FilePath(new File(expandAll(getBuildContext())));
+                }
+            } else {
+                context = build.getWorkspace();
+            }
             Iterator<ImageTag> i = getImageTags().iterator();
             Result lastResult = new Result();
             if (i.hasNext()) {

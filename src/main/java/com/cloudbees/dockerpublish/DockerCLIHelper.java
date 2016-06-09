@@ -43,8 +43,12 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @since TODO
  */
 @Restricted(NoExternalUse.class)
-public class DockerCLIHelper {
-    
+public final class DockerCLIHelper {
+
+    private DockerCLIHelper() throws InstantiationException {
+        throw new InstantiationException("This helper class is not created for instantiation");
+    }
+
     /**
      * Parses console output from a {@link ByteArrayOutputStream}.
      * @param output Output stream

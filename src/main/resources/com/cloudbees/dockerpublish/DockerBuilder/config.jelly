@@ -1,4 +1,4 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:dc="/lib/docker/commons">
   <!--
     This jelly script is used for per-project configuration.
 
@@ -70,6 +70,8 @@
       description="Path to the Dockerfile for this build. File must be relative to build context. Can be used to specify a Dockerfile with a non-standard filename. Uses Docker client default if not specified.">
       <f:textbox />
     </f:entry>
+
+    <dc:selectDockerTool field="dockerToolName"/>
 
   </f:advanced>
 

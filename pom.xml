@@ -5,13 +5,17 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.554.2</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>2.9</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
   <version>1.2.3-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
+  <properties>
+    <jenkins.version>1.554.2</jenkins.version>
+    <java.level>6</java.level>
+  </properties>
 
   <name>CloudBees Docker Build and Publish plugin</name>
   <description>
@@ -36,13 +40,13 @@
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
   <pluginRepositories>
     <pluginRepository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
 
@@ -57,29 +61,6 @@
       <artifactId>token-macro</artifactId>
       <version>1.10</version>
     </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>annotations</artifactId>
-      <version>3.0.0</version>
-    </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.2</version>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.2</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <failOnError>false</failOnError>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>

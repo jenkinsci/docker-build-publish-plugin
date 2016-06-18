@@ -113,9 +113,7 @@ public class DockerBuilderTest {
 
         DockerBuilder after = project.getBuildersList().get(DockerBuilder.class);
 
-        jenkins.assertEqualBeans(before, after, "repoName,buildContext,createFingerprint," +
-            "dockerfilePath,forcePull,noCache,registry,repoTag,server,skipBuild," +
-            "skipDecorate,skipPush,skipTagLatest");
+        jenkins.assertEqualDataBoundBeans(before, after);
     }
 
     @Test

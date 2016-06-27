@@ -79,7 +79,7 @@ public class DockerBuilder extends Builder {
     private boolean createFingerprint = true;
     private boolean skipTagLatest;
     private String buildAdditionalArgs = "";
-    private boolean forceTag = true;
+    private boolean forceTag = false;
     
     @CheckForNull
     private String dockerToolName;
@@ -350,7 +350,7 @@ public class DockerBuilder extends Builder {
                 for (ImageTag imageTag : getImageTags()) {
                     result.add(
                             "tag "
-                            + (imageTag.isLatest() || isForceTag() ? "--force=true " : "")
+                            + (isForceTag() ? "--force=true " : "")
                             + getRepo() + " " + imageTag);
                 }
             }

@@ -384,7 +384,7 @@ public class DockerBuilder extends Builder {
             if (image != null) {
                 // we know the image name so apply the tags directly
                 while (lastResult.result && i.hasNext()) {
-                    lastResult = executeCmd("docker tag "
+                    lastResult = executeCmd("tag "
                             + (isForceTag() ? "--force=true " : "")
                             + image + " " + i.next());
                 }

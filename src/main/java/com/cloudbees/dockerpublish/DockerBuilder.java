@@ -376,7 +376,7 @@ public class DockerBuilder extends Builder {
                 lastResult = executeCmd("build " + expandAll(getBuildAdditionalArgs()) + " -t " + i.next()
                     + ((isNoCache()) ? " --no-cache=true " : "") + " "
                     + ((isForcePull()) ? " --pull=true " : "") + " "
-                    + (defined(getDockerfilePath()) ? " --file=" + getDockerfilePath() : "") + " "
+                    + (defined(getDockerfilePath()) ? " --file=" + expandAll(getDockerfilePath()) : "") + " "
                     + "'" + context + "'");
             }
             // get the image to save rebuilding it to apply the other tags

@@ -48,6 +48,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.apache.commons.lang.math.NumberUtils;
 
 
 /**
@@ -80,6 +81,7 @@ public class DockerBuilder extends Builder {
     private boolean skipTagLatest;
     private String buildAdditionalArgs = "";
     private boolean forceTag = false;
+    private String retryBuild;
     
     @CheckForNull
     private String dockerToolName;
@@ -197,6 +199,11 @@ public class DockerBuilder extends Builder {
     public void setRepoTag(String repoTag) {
         this.repoTag = repoTag;
     }
+
+    public String getRetryBuild() { return retryBuild; }
+
+    @DataBoundSetter
+    public void setRetryBuild(String retryBuild) { this.retryBuild = retryBuild; }
 
     public boolean isSkipPush() {
         return skipPush;
@@ -408,7 +415,15 @@ public class DockerBuilder extends Builder {
             for (ImageTag imageTag : getImageTags()) {
                 result.add("push " + imageTag.toString());
             }
-            return executeCmd(result);
+            boolean lastResult = executeCmd(result);
+            int retryNo= NumberUtils.toInt(getRetryBuild());
+            while (!lastResult && retryNo > 1)
+            {
+                logger.log(Level.INFO, "Retrying push command : {0} attempt", retryNo);
+                lastResult = executeCmd(result);
+                retryNo--;
+            }
+            return lastResult;
         }
 
         private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {

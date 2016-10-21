@@ -472,8 +472,12 @@ public class DockerBuilder extends Builder {
 	            }
             }
             
-            cmd = dockerCmd + " " +cmd;
-            
+	    /* If command is not a docker command don't prefix with docker */
+
+            if (!cmd.startsWith("echo")) {
+		cmd = dockerCmd + " " +cmd;
+            }
+
             logger.log(Level.FINER, "Executing: {0}", cmd);
 
             try {

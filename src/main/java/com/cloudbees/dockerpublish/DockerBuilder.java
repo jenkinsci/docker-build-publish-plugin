@@ -343,16 +343,13 @@ public class DockerBuilder extends Builder {
         }
         
         private boolean maybeTagOnly() throws MacroEvaluationException, IOException, InterruptedException {
-            List<String> result = new ArrayList<String>();
             if (!defined(getRepoTag())) {
-                result.add("echo 'Nothing to build or tag'");
-            } else {
-                for (ImageTag imageTag : getImageTags()) {
-                    result.add(
-                            "tag "
-                            + (isForceTag() ? "--force=true " : "")
-                            + getRepo() + " " + imageTag);
-                }
+                listener.getLogger().println("Nothing to build or tag");
+                return true;
+            }
+            List<String> result = new ArrayList<String>();
+            for (ImageTag imageTag : getImageTags()) {
+                result.add("tag " + (isForceTag() ? "--force=true " : "") + getRepo() + " " + imageTag);
             }
             return executeCmd(result);
         }

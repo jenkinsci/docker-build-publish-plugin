@@ -24,7 +24,7 @@
     </f:entry>
 
     <f:entry title="No Cache" field="noCache"
-        description="Force rebuild - do not user docker cache (may be slower)">
+        description="Force rebuild - do not use docker cache (may be slower)">
         <f:checkbox />
     </f:entry>
 
@@ -37,7 +37,7 @@
         description="Do not build the image">
         <f:checkbox />
     </f:entry>
-    
+
     <f:entry title="${%Create fingerprints}" field="createFingerprint">
         <f:checkbox default="true"/>
     </f:entry>

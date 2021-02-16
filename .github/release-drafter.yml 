@@ -1,0 +1,5 @@
+
+_extends: .github
+version-template: $MAJOR.$MINOR.$PATCH
+tag-template: build-failure-analyzer-$NEXT_PATCH_VERSION
+name-template: Docker Build and Publish Plugin $NEXT_PATCH_VERSION

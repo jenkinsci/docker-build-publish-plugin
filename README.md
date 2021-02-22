@@ -1,6 +1,6 @@
 # CloudBees Docker Build and Publish
 
-[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/docker-build-publish.svg)](https://plugins.jenkins.io/docker-commons)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/docker-build-publish.svg)](https://plugins.jenkins.io/docker-build-publish)
 [![GitHub release](https://img.shields.io/github/release/jenkinsci/docker-build-publish-plugin.svg?label=changelog)](https://github.com/jenkinsci/docker-build-publish-plugin/releases/latest)
 [![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/docker-build-publish.svg?color=blue)](https://plugins.jenkins.io/docker-build-publish)
 

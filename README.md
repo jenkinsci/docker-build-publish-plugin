@@ -4,7 +4,7 @@
 [![GitHub release](https://img.shields.io/github/release/jenkinsci/docker-build-publish-plugin.svg?label=changelog)](https://github.com/jenkinsci/build-publish-plugin/releases/latest)
 [![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/role-strategy.svg?color=blue)](https://plugins.jenkins.io/build-publish)
 
-If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck! This is an early version - tweet @michaelneale if you have questions.
+Build and push your Docker based project to the docker registry, including private repos.
 
 Features:
 

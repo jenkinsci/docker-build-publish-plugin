@@ -1,6 +1,8 @@
-# Docker registry build plugin for Jenkins
+# CloudBees Docker Build and Publish
 
-[![Build Status](https://jenkins.ci.cloudbees.com/job/plugins/job/docker-build-publish-plugin/badge/icon)](https://jenkins.ci.cloudbees.com/job/plugins/job/docker-build-publish-plugin/)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/docker-build-publish.svg)](https://plugins.jenkins.io/docker-commons)
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/docker-build-publish-plugin.svg?label=changelog)](https://github.com/jenkinsci/build-publish-plugin/releases/latest)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/role-strategy.svg?color=blue)](https://plugins.jenkins.io/build-publish)
 
 If you want to build and push your Docker based project to the docker registry (including private repos), then you are in luck! This is an early version - tweet @michaelneale if you have questions.
 
@@ -21,15 +23,15 @@ When upgrading you need to add the credentials to each job that uses the plugin,
 the global fields are no longer used.
 
 
-## Dockerfile as build config
-
-A Dockerfile is a convenient way to express build instructions.
-This plugin will use the Dockerfile in the workspace (possibly previously checked out from git)
-and will invoke `docker build` to create the Docker image.
+## Dockerfile as buildfile
+A Dockerfile is a convenient way to express build instructions. 
+This plugin will use the Dockerfile in the workspace (possibly previously checked out from git) and will invoke docker build to create the Docker image. 
 The result can be automatically uploaded to the Docker Registry or a private registry.
 
-As the Beatles sang, all you need is Dockerfile, and love. If you have a Dockerfile in the root
-of your project, then no further configuration is needed.
+As the Beatles song, all you need is Dockerfile, and love. 
+If you have a Dockerfile in the root of your project, then no further configuration is needed.
+
+
 
 ## Usage
 
@@ -75,29 +77,3 @@ Docker has some confusing terminology - quick refresher:
  * Registry - a place you push docker images/repos to
  * Push - deploy a docker repo (presumably with a new image) to a remote registry
  * Image - a docker image is what you build from a Dockerfile - it gets added to a repo
-
-# Plugin development
-
-## Environment
-
-The following build environment is required to build this plugin
-
-* `java-1.6` and `maven-3.0.5`
-
-## Build
-
-To build the plugin locally:
-
-    mvn clean package
-
-## Release
-
-To release the plugin:
-
-    mvn release:prepare release:perform -B
-
-## Test local instance
-
-To test in a local Jenkins instance
-
-    mvn hpi:run

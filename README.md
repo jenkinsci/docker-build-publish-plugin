@@ -35,7 +35,7 @@ If you have a Dockerfile in the root of your project, then no further configurat
 
 ## Usage
 
-Firstly, ensure you have docker running (if you are running with a slave, ensure the slave can run docker) - and that Jenkins can run docker commands.
+Firstly, ensure you have docker running (if you are running with a agent, ensure the agent can run docker) - and that Jenkins can run docker commands.
 
 Setup a build of any type - with a _CloudBees Docker Build and Publish_ build step.
 You can use the example under [`src/test/example`](https://github.com/jenkinsci/docker-build-publish-plugin/tree/master/src/test/example) to build a very simple busybox based image,

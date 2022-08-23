@@ -408,7 +408,7 @@ public class DockerBuilder extends Builder {
             return executeCmd(result);
         }
 
-        private boolean executeCmd(List<String> cmds) throws IOException, InterruptedException {
+        private boolean executeCmd(List<String> cmds) throws MacroEvaluationException, IOException, InterruptedException {
             Iterator<String> i = cmds.iterator();
             Result lastResult = new Result();
             // if a command fails, do not continue
@@ -427,7 +427,7 @@ public class DockerBuilder extends Builder {
          * @throws IOException Execution error
          * @throws InterruptedException The build has been interrupted
          */
-        private Result executeCmd(String cmd) throws IOException, InterruptedException {
+        private Result executeCmd(String cmd) throws MacroEvaluationException, IOException, InterruptedException {
             return executeCmd(cmd, true, true);
         }
         
@@ -441,7 +441,7 @@ public class DockerBuilder extends Builder {
          * @throws InterruptedException The build has been interrupted
          */
         private @Nonnull Result executeCmd( @Nonnull String cmd, 
-                boolean logStdOut, boolean logStdErr) throws IOException, InterruptedException {
+                boolean logStdOut, boolean logStdErr) throws MacroEvaluationException, IOException, InterruptedException {
             ByteArrayOutputStream baosStdOut = new ByteArrayOutputStream();
             ByteArrayOutputStream baosStdErr = new ByteArrayOutputStream();
             OutputStream stdout = logStdOut ? 
@@ -449,10 +449,12 @@ public class DockerBuilder extends Builder {
             OutputStream stderr = logStdErr ? 
                     new TeeOutputStream(listener.getLogger(), baosStdErr) : baosStdErr;
 
-            
+            DockerRegistryEndpoint expandedRegistry = new DockerRegistryEndpoint(
+                expandAll(getRegistry().getEffectiveUrl().toString()),
+                getRegistry().getCredentialsId());
             KeyMaterial dockerKeys = 
                 // Docker registry credentials
-                getRegistry().newKeyMaterialFactory(build)
+                expandedRegistry.newKeyMaterialFactory(build)
             .plus(
                 // Docker server credentials. If server is null (right after upgrading) do not use credentials
                 server == null ? null : server.newKeyMaterialFactory(build))
@@ -496,7 +498,7 @@ public class DockerBuilder extends Builder {
             }
         }
         
-        void processFingerprintsFromStdout(@Nonnull String stdout) throws IOException, InterruptedException {
+        void processFingerprintsFromStdout(@Nonnull String stdout) throws MacroEvaluationException, IOException, InterruptedException {
             if (!createFingerprint) {
                 return;
             }
@@ -508,7 +510,7 @@ public class DockerBuilder extends Builder {
             processFingerprints(image);
         }
         
-        void processFingerprints(@Nonnull String image) throws IOException, InterruptedException {
+        void processFingerprints(@Nonnull String image) throws MacroEvaluationException, IOException, InterruptedException {
             if (!createFingerprint) {
                 return;
             }

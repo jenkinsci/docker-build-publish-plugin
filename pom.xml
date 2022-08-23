@@ -9,11 +9,11 @@
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
-  <version>1.4.0</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <properties>
-    <revision>1.3.4</revision>
+    <revision>1.4.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/docker-build-publish-plugin</gitHubRepo>
     <jenkins.version>2.263.4</jenkins.version>
@@ -36,7 +36,7 @@
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>http://github.com/${gitHubRepo}</url>
-    <tag>docker-build-publish-1.4.0</tag>
+    <tag>${scmTag}</tag>
   </scm>
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>

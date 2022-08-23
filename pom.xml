@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>1.4.0</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -36,7 +36,7 @@
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>http://github.com/${gitHubRepo}</url>
-    <tag>${scmTag}</tag>
+    <tag>docker-build-publish-1.4.0</tag>
   </scm>
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>

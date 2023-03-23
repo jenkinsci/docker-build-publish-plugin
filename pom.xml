@@ -5,23 +5,25 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.9</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>4.47</version>
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
-  <version>1.3.2-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <properties>
-    <jenkins.version>1.554.2</jenkins.version>
-    <java.level>6</java.level>
+    <revision>1.4.1</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <gitHubRepo>jenkinsci/docker-build-publish-plugin</gitHubRepo>
+    <jenkins.version>2.263.4</jenkins.version>
   </properties>
 
   <name>CloudBees Docker Build and Publish plugin</name>
   <description>
     This plugin provides the ability to build projects with a Dockerfile, and publish the resultant tagged image (repo) to a Docker registry.
   </description>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+Docker+Build+and+Publish+plugin</url>
+  <url>https://github.com/jenkinsci/docker-build-publish-plugin</url>
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -31,10 +33,10 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/docker-build-publish-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/docker-build-publish-plugin.git</developerConnection>
-    <url>http://github.com/jenkinsci/docker-build-publish-plugin</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <url>http://github.com/${gitHubRepo}</url>
+    <tag>${scmTag}</tag>
   </scm>
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
@@ -54,13 +56,24 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>docker-commons</artifactId>
-      <version>1.3.1</version>
+      <version>1.19</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>token-macro</artifactId>
-      <version>1.10</version>
     </dependency>
   </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.263.x</artifactId>
+        <version>961.vf0c9f6f59827</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
 </project>

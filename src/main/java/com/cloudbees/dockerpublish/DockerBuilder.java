@@ -81,7 +81,7 @@ public class DockerBuilder extends Builder {
     private boolean skipTagLatest;
     private String buildAdditionalArgs = "";
     private boolean forceTag = false;
-    private String retryBuild;
+    private String retryBuild = null;
     
     @CheckForNull
     private String dockerToolName;

@@ -103,6 +103,7 @@ public class DockerBuilderTest {
         before.setSkipDecorate(true);
         before.setSkipPush(true);
         before.setSkipTagLatest(true);
+        before.retryBuild(null);
 
         project.getBuildersList().add(before);
 

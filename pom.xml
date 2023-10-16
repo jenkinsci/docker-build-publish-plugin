@@ -16,7 +16,7 @@
     <revision>1.4.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/docker-build-publish-plugin</gitHubRepo>
-    <jenkins.version>2.263.4</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
   </properties>
 
   <name>CloudBees Docker Build and Publish plugin</name>

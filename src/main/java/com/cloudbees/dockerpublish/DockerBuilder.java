@@ -2,7 +2,6 @@ package com.cloudbees.dockerpublish;
 
 import com.cloudbees.dockerpublish.DockerCLIHelper.InspectImageResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -14,8 +13,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import hudson.tools.ToolDescriptor;
-import hudson.tools.ToolInstallation;
 import hudson.util.FormValidation;
 
 import java.io.ByteArrayOutputStream;

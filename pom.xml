@@ -5,7 +5,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.47</version>
+    <version>4.51</version>
+    <relativePath />
   </parent>
 
   <artifactId>docker-build-publish</artifactId>
@@ -16,7 +17,9 @@
     <revision>1.4.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/docker-build-publish-plugin</gitHubRepo>
-    <jenkins.version>2.263.4</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.346</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
   </properties>
 
   <name>CloudBees Docker Build and Publish plugin</name>
@@ -33,7 +36,7 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>http://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
@@ -68,8 +71,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.263.x</artifactId>
-        <version>961.vf0c9f6f59827</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>1763.v092b_8980a_f5e</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

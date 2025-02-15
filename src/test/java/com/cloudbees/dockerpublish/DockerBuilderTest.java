@@ -23,7 +23,7 @@
  */
 package com.cloudbees.dockerpublish;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.Items;

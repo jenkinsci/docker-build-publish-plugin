@@ -24,8 +24,6 @@
 
 package com.cloudbees.dockerpublish;
 
-import org.jenkinsci.plugins.docker.commons.credentials.DockerRegistryEndpoint;
-
 /**
  * Image names
  * 

@@ -23,7 +23,8 @@
  */
 package com.cloudbees.dockerpublish;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import com.google.common.base.Charsets;
 import java.net.URL;
